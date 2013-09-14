@@ -23,11 +23,11 @@ Sub youtube_add_account()
      port = CreateObject("roMessagePort") 
      screen.SetMessagePort(port)
      screen.SetTitle("Youtube User Settings")
-	 
-	ytusername = RegRead("YTUSERNAME1")
-	if ytusername<>invalid then
-	screen.SetText(ytusername)
-	end if
+     
+    ytusername = RegRead("YTUSERNAME1")
+    if ytusername<>invalid then
+    screen.SetText(ytusername)
+    end if
  
      screen.SetDisplayText("Enter your Youtube User name (not email address)")
      screen.SetMaxLength(35)
@@ -43,19 +43,19 @@ Sub youtube_add_account()
              else if msg.isButtonPressed() then
                  if msg.GetIndex() = 1
                      searchText = screen.GetText()
-					 'http://gdata.youtube.com/feeds/api/users/dkjhsdkjds/playlists?v=2&max-results=50
-					plxml = GetFeedXML("http://gdata.youtube.com/feeds/api/users/" + searchText + "/playlists?v=2&max-results=50")
-					if plxml = invalid then
-						ShowDialog1Button("Error", searchText + " is not a valid Youtube User Id. Please go to http://utmostsolutions.github.io/myvideobuzz/ to find your youtube username.", "Ok")
-					else
-						RegWrite("YTUSERNAME1", searchText)
-						 screen.Close()
-						 ShowHomeScreen()
-						 'showHomeScreen(CreateScreen("roPosterScreen","Welcome","","scale-to-fit", "appHomeScreen"))
-						 return
-					endif
-				  else
-					ShowDialog1Button("Help", "Go to http://utmostsolutions.github.io/myvideobuzz/ to find your youtube username.", "Ok")
+                     'http://gdata.youtube.com/feeds/api/users/dkjhsdkjds/playlists?v=2&max-results=50
+                    plxml = GetFeedXML("http://gdata.youtube.com/feeds/api/users/" + searchText + "/playlists?v=2&max-results=50")
+                    if plxml = invalid then
+                        ShowDialog1Button("Error", searchText + " is not a valid Youtube User Id. Please go to http://utmostsolutions.github.io/myvideobuzz/ to find your youtube username.", "Ok")
+                    else
+                        RegWrite("YTUSERNAME1", searchText)
+                         screen.Close()
+                         ShowHomeScreen()
+                         'showHomeScreen(CreateScreen("roPosterScreen","Welcome","","scale-to-fit", "appHomeScreen"))
+                         return
+                    endif
+                  else
+                    ShowDialog1Button("Help", "Go to http://utmostsolutions.github.io/myvideobuzz/ to find your youtube username.", "Ok")
                  endif
              endif
          endif
@@ -94,20 +94,20 @@ End Sub
 
 
 Function GetFeedXML(plurl As String) As Dynamic
-		http = NewHttp(plurl)
-		plrsp = http.GetToStringWithRetry()
+        http = NewHttp(plurl)
+        plrsp = http.GetToStringWithRetry()
 
-		plxml=CreateObject("roXMLElement")
-		if not plxml.Parse(plrsp) then
-			return invalid
-		endif
+        plxml=CreateObject("roXMLElement")
+        if not plxml.Parse(plrsp) then
+            return invalid
+        endif
 
-		if plxml.GetName() <> "feed" then
-			return invalid
-		endif
+        if plxml.GetName() <> "feed" then
+            return invalid
+        endif
 
-		if islist(plxml.GetBody()) = false then
-			return invalid
-		endif
-		return plxml
+        if islist(plxml.GetBody()) = false then
+            return invalid
+        endif
+        return plxml
 End Function

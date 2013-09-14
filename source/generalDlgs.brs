@@ -31,7 +31,6 @@ End Function
 '******************************************************
 'Retrieve text for connection failed
 '******************************************************
-
 Function GetConnectionFailedText() as String
     return "We were unable to connect to the service.  Please try again in a few minutes."
 End Function
@@ -42,7 +41,6 @@ End Function
 'Parameter: retry t/f - offer retry option
 'Return 0 = retry, 1 = back
 '******************************************************
-
 Function ShowConnectionFailedRetry() as dynamic
     Dbg("Connection Failed Retry")
     title = "Can't connect to service"
@@ -51,9 +49,8 @@ Function ShowConnectionFailedRetry() as dynamic
 End Function
 
 '******************************************************
-'Show Amzon connection error dialog with only an OK button
+'Show connection error dialog with only an OK button
 '******************************************************
-
 Sub ShowConnectionFailed()
     Dbg("Connection Failed")
     title = "Can't connect to service"
@@ -64,8 +61,7 @@ End Sub
 '******************************************************
 'Show error dialog with OK button
 '******************************************************
-
-Sub ShowErrorDialog(text As dynamic, title=invalid as dynamic)
+Sub ShowErrorDialog(text As dynamic, title = invalid as dynamic)
     if not isstr(text) text = "Unspecified error"
     if not isstr(title) title = "Error"
     ShowDialog1Button(title, text, "Done")
@@ -75,15 +71,14 @@ End Sub
 'Show 1 button dialog
 'Return: nothing
 '******************************************************
-
 Sub ShowDialog1Button(title As dynamic, text As dynamic, but1 As String, quickReturn=false As Boolean)
     if not isstr(title) title = ""
     if not isstr(text) text = ""
 
     Dbg("DIALOG1: ", title + " - " + text)
 
-    port = CreateObject("roMessagePort")
-    dialog = CreateObject("roMessageDialog")
+    port = CreateObject( "roMessagePort" )
+    dialog = CreateObject( "roMessageDialog" )
     dialog.SetMessagePort(port)
 
     dialog.SetTitle(title)
@@ -112,7 +107,6 @@ End Sub
 'Show 2 button dialog
 'Return: 0=first button or screen closed, 1=second button
 '******************************************************
-
 Function ShowDialog2Buttons(title As dynamic, text As dynamic, but1 As String, but2 As String) As Integer
     if not isstr(title) title = ""
     if not isstr(text) text = ""
@@ -182,7 +176,6 @@ End Function
 'Show basic message dialog without buttons
 'Dialog remains up until caller releases the returned object
 '******************************************************
-
 Function ShowDialogNoButton(title As dynamic, text As dynamic) As Object
     if not isstr(title) title = ""
     if not isstr(text) text = ""

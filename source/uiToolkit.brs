@@ -3,51 +3,52 @@
 '
 '    Display "menu" items in a Poster Screen.   
 '
-Function uitkPreShowPosterMenu(ListStyle="flat-category" as String, breadA=invalid, breadB=invalid) As Object
-	port=CreateObject("roMessagePort")
-	screen = CreateObject("roPosterScreen")
-	screen.SetMessagePort(port)
+Function uitkPreShowPosterMenu(ListStyle="flat-category" as String, breadA = "Home", breadB = invalid) As Object
+    port=CreateObject("roMessagePort")
+    screen = CreateObject("roPosterScreen")
+    screen.SetMessagePort(port)
 
-	if breadA<>invalid and breadB<>invalid then
-		screen.SetBreadcrumbText(breadA, breadB)
-    elseif breadA<>invalid and breadB = invalid then
+    if breadA <> invalid and breadB<>invalid then
+        screen.SetBreadcrumbText(breadA, breadB)
+    elseif breadA <> invalid and breadB = invalid then
+        screen.SetBreadcrumbText(breadA, "")
         screen.SetTitle(breadA)
-	end if
+    end if
 
     if ListStyle = "" OR ListStyle = invalid then
         ListStyle = "flat-category"
     end if
 
-	screen.SetListStyle(ListStyle)
-	screen.SetListDisplayMode("scale-to-fit")
-	REM screen.SetListDisplayMode("zoom-to-fill")
-	screen.Show()
+    screen.SetListStyle(ListStyle)
+    screen.SetListDisplayMode("scale-to-fit")
+    REM screen.SetListDisplayMode("zoom-to-fill")
+    screen.Show()
 
-	return screen
+    return screen
 end function
 
 
 Function uitkDoPosterMenu(posterdata, screen, onselect_callback=invalid) As Integer
 
-	if type(screen)<>"roPosterScreen" then
-		'print "illegal type/value for screen passed to uitkDoPosterMenu()" 
-		return -1
-	end if
-	
-	screen.SetContentList(posterdata)
+    if type(screen)<>"roPosterScreen" then
+        'print "illegal type/value for screen passed to uitkDoPosterMenu()" 
+        return -1
+    end if
+    
+    screen.SetContentList(posterdata)
 
     while true
         msg = wait(0, screen.GetMessagePort())
-		
-		'print "uitkDoPosterMenu | msg type = ";type(msg)
-		
-		if type(msg) = "roPosterScreenEvent" then
-			'print "event.GetType()=";msg.GetType(); " event.GetMessage()= "; msg.GetMessage()
-			if msg.isListItemSelected() then
-				if onselect_callback<>invalid then
-					selecttype = onselect_callback[0]
-					if selecttype=0 then
-						this = onselect_callback[1]
+        
+        'print "uitkDoPosterMenu | msg type = ";type(msg)
+        
+        if type(msg) = "roPosterScreenEvent" then
+            'print "event.GetType()=";msg.GetType(); " event.GetMessage()= "; msg.GetMessage()
+            if msg.isListItemSelected() then
+                if onselect_callback<>invalid then
+                    selecttype = onselect_callback[0]
+                    if selecttype=0 then
+                        this = onselect_callback[1]
                         selected_callback=onselect_callback[msg.GetIndex()+2]
                         if islist(selected_callback) then
                             f=selected_callback[0]
@@ -71,20 +72,20 @@ Function uitkDoPosterMenu(posterdata, screen, onselect_callback=invalid) As Inte
                                 this[selected_callback]()
                             end if
                         end if
-					else if selecttype=1 then
-						userdata1=onselect_callback[1]
-						userdata2=onselect_callback[2]
-						f=onselect_callback[3]
-						f(userdata1, userdata2, msg.GetIndex())
-					end if
-				else
-					return msg.GetIndex()
-				end if
-			else if msg.isScreenClosed() then
-				return -1
-			end if
+                    else if selecttype=1 then
+                        userdata1=onselect_callback[1]
+                        userdata2=onselect_callback[2]
+                        f=onselect_callback[3]
+                        f(userdata1, userdata2, msg.GetIndex())
+                    end if
+                else
+                    return msg.GetIndex()
+                end if
+            else if msg.isScreenClosed() then
+                return -1
+            end if
         end if
-	end while
+    end while
 End Function
 
 
@@ -179,11 +180,11 @@ Function uitkDoCategoryMenu(categoryList, screen, content_callback, onclick_call
     
     if contentlist.Count()=0 then
         screen.SetContentList([])
-		screen.clearmessage()
-		screen.showmessage("No viewable content in this section")
+        screen.clearmessage()
+        screen.showmessage("No viewable content in this section")
     else
         screen.SetContentList(contentlist)
-		screen.clearmessage()
+        screen.clearmessage()
     end if
     screen.Show()
     
