@@ -38,10 +38,10 @@ Function InitOauth(appname As String, consumerkey As String, sharedsecret As Str
 
     this.items.push("authtoken")
     this.items.push("authsecret")
-    
+
     this.timestamp = createobject("rotimespan")
     this.datetime  = createobject("rodatetime")
-    
+
     this.unprotectedkeys = ["oauth_consumer_key", "oauth_nonce", "oauth_signature_method", "oauth_timestamp", "oauth_version" ]
     this.protectedkeys   = ["oauth_consumer_key", "oauth_nonce", "oauth_signature_method", "oauth_timestamp", "oauth_version", "oauth_token"]
     this.verifierkeys    = ["oauth_consumer_key", "oauth_nonce", "oauth_signature_method", "oauth_timestamp", "oauth_version", "oauth_token", "oauth_verifier"]
@@ -61,18 +61,26 @@ Function oauth_init_hmac(key As String) As Dynamic
     hmac = CreateObject("roHMAC")
     key_byte_array = CreateObject("roByteArray")
     key_byte_array.fromAsciiString(key)
-    if hmac.setup("sha1", key_byte_array)<>0 then hmac = invalid
+    if (hmac.setup("sha1", key_byte_array) <> 0) then
+        hmac = invalid
+    end if
     return hmac
 End Function
 
 Function oauth_get_hmac(protected As Boolean) As Dynamic
-    if protected then name = "hmacProtected" else name = "hmac"
+    if (protected) then
+        name = "hmacProtected"
+    else
+        name = "hmac"
+    end if
     hmac = m[name]
-    if hmac=invalid
+    if (hmac = invalid) then
         key = URLEncode(m.sharedsecret) + "&"
         protectedKey = protected and isnonemptystr(m.authsecret)
-        if protectedKey then key = key + URLEncode(m.authsecret)
-        if not protected or protectedKey
+        if (protectedKey) then
+            key = key + URLEncode(m.authsecret)
+        end if
+        if (not(protected) OR protectedKey) then
             hmac = m.initHmac(key)
             m[name] = hmac
         end if
@@ -95,16 +103,16 @@ Function oauth_add_params(http As Object) As Void
     http.removeParam("oauth_signature")
     m.datetime.mark() 'so that m.datetime.asSeconds() retrieves the current time
     keyvalues = [ m.consumerkey, itostr(rnd(999999999)), "HMAC-SHA1", itostr(m.datetime.asSeconds()), m.version ]
-    if http.accessVerifier then
+    if (http.accessVerifier) then
         keyvalues.push(m.authtoken)
         keyvalues.push(m.verifier)
         http.addallparams(m.verifierkeys, keyvalues, "urlParams")
-    else if http.protected
+    else if (http.protected) then
         keyvalues.push(m.authtoken)
         http.addallparams(m.protectedkeys, keyvalues, "urlParams")
     else
         http.addallparams(m.unprotectedkeys, keyvalues, "urlParams")
-    endif
+    end if
 End Function
 
 
@@ -155,7 +163,9 @@ Function oauth_get_signature_base_string(httpObj As Object) as String
 
     params = httpObj.GetParams("urlParams")
 
-    if not params.empty() then sig_base_str = sig_base_str + "&" + UrlEncode(params.encode())
+    if (not(params.empty())) then
+        sig_base_str = sig_base_str + "&" + UrlEncode(params.encode())
+    end if
 
     'print "oauth signature base string: "; sig_base_str
     return sig_base_str
@@ -170,7 +180,7 @@ End Function
 '*********************************************************
 Function oauth_get_signature(httpObj As Object) as String
     hmac = m.getHmac(httpObj.protected)
-    if hmac<>invalid
+    if (hmac <> invalid) then
         sig_base_str = m.getSignatureBaseString(httpObj)
         sig_base_byte_array = CreateObject("roByteArray")
         sig_base_byte_array.fromAsciiString(sig_base_str)

@@ -1,7 +1,9 @@
 
 Sub Init()
     'if m.oa = invalid then m.oa = InitOauth("RokyouTube", "toasterdesigns.net", "Y6GQqc19mQ2Q5Ux4PFxMOUPk", "1.0")
-    if m.youtube = invalid then m.youtube = InitYouTube()
+    if (m.youtube = invalid) then
+        m.youtube = InitYouTube()
+    end if
 End Sub
 
 Sub RunUserInterface()
@@ -15,7 +17,7 @@ Sub ShowHomeScreen()
     ' Pop up start of UI for some instant feedback while we load the icon data
     ytusername = RegRead("YTUSERNAME1", invalid)
     screen=uitkPreShowPosterMenu("flat-category", ytusername)
-    if screen=invalid then
+    if (screen = invalid) then
         'print "unexpected error in uitkPreShowPosterMenu"
         return
     end if
@@ -43,7 +45,7 @@ Sub ShowHomeScreen()
         menudata.Push({ShortDescriptionLine1:"My Playlists", FeedURL:"users/" + ytusername + "/playlists?v=2&max-results=50", Category:"true", ShortDescriptionLine2:"Browse your Playlists", HDPosterUrl:"pkg:/images/YourPlaylists.jpg", SDPosterUrl:"pkg:/images/YourPlaylists.jpg"})
         menudata.Push({ShortDescriptionLine1:"My Subscriptions", FeedURL:"users/" + ytusername + "/subscriptions?v=2&max-results=50", Category:"true", ShortDescriptionLine2:"Browse your Subscriptions", HDPosterUrl:"pkg:/images/YourSubscriptions.jpg", SDPosterUrl:"pkg:/images/YourSubscriptions.jpg"})
         menudata.Push({ShortDescriptionLine1:"My Favorites", FeedURL:"users/" + ytusername + "/favorites?v=2&max-results=50", Category:"false", ShortDescriptionLine2:"Browse your favorite videos", HDPosterUrl:"pkg:/images/YourFavorites.jpg", SDPosterUrl:"pkg:/images/YourFavorites.jpg"})
-    endif
+    end if
 
     menudata.Push({ShortDescriptionLine1:"Nursery Rhymes", FeedURL:"pkg:/xml/nursery.xml", Category:"true",  ShortDescriptionLine2:"Collection of featured Nursery Rhymes", HDPosterUrl:"pkg:/images/NurseryRhymes.jpg", SDPosterUrl:"pkg:/images/NurseryRhymes.jpg"})
     menudata.Push({ShortDescriptionLine1:"Top Channels", FeedURL:"pkg:/xml/topchannels.xml", Category:"true",  ShortDescriptionLine2:"Top Channels", HDPosterUrl:"pkg:/images/TopChannels.jpg", SDPosterUrl:"pkg:/images/TopChannels.jpg"})
@@ -55,10 +57,10 @@ Sub ShowHomeScreen()
     onselect = [1, menudata, m.youtube,
         function(menu, youtube, set_idx)
             'PrintAny(0, "menu:", menu)
-            if menu[set_idx]["FeedURL"]<>invalid then
+            if (menu[set_idx]["FeedURL"] <> invalid) then
                 feedurl = menu[set_idx]["FeedURL"]
                 youtube.FetchVideoList(feedurl,menu[set_idx]["ShortDescriptionLine1"], invalid, strtobool(menu[set_idx]["Category"]))
-            else if menu[set_idx]["OnClick"]<>invalid then
+            else if (menu[set_idx]["OnClick"] <> invalid) then
                 onclickevent = menu[set_idx]["OnClick"]
                 youtube[onclickevent]()
             end if

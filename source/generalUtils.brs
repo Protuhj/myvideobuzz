@@ -3,21 +3,29 @@
 'Registry Helper Functions
 '******************************************************
 Function RegRead(key, section=invalid)
-    if section = invalid then section = "Default"
+    if (section = invalid) then
+        section = "Default"
+    end if
     sec = CreateObject("roRegistrySection", section)
-    if sec.Exists(key) then return sec.Read(key)
+    if (sec.Exists(key)) then
+        return sec.Read(key)
+    end if
     return invalid
 End Function
 
 Function RegWrite(key, val, section=invalid)
-    if section = invalid then section = "Default"
+    if (section = invalid) then
+        section = "Default"
+    end if
     sec = CreateObject("roRegistrySection", section)
     sec.Write(key, val)
     sec.Flush() 'commit it
 End Function
 
 Function RegDelete(key, section=invalid)
-    if section = invalid then section = "Default"
+    if (section = invalid) then
+        section = "Default"
+    end if
     sec = CreateObject("roRegistrySection", section)
     sec.Delete(key)
     sec.Flush()
@@ -28,9 +36,9 @@ Function RegistryDump() as integer
     print "Dumping Registry"
     r = CreateObject("roRegistry")
     sections = r.GetSectionList()
-    if (sections.Count() = 0)
+    if (sections.Count() = 0) then
         print "No sections in registry"
-    endif
+    end if
     for each section in sections
         print "section=";section
         s = CreateObject("roRegistrySection",section)
@@ -52,14 +60,14 @@ Function internalQSort(A as Object, left as integer, right as integer) as void
     i = left
     j = right
     pivot = A[(left+right)/2]
-    while i <= j
-        while A[i] < pivot
+    while (i <= j)
+        while (A[i] < pivot)
             i = i + 1
         end while
-        while A[j] > pivot
+        while (A[j] > pivot)
             j = j - 1
         end while
-        if (i <= j)
+        if (i <= j) then
             tmp = A[i]
             A[i] = A[j]
             A[j] = tmp
@@ -67,12 +75,12 @@ Function internalQSort(A as Object, left as integer, right as integer) as void
             j = j - 1
         end if
     end while
-    if (left < j)
+    if (left < j) then
         internalQSort(A, left, j)
-    endif
-    if (i < right)
+    end if
+    if (i < right) then
         internalQSort(A, i, right)
-    end if        
+    end if
 End Function
 
 ' quicksort an array using a function to extract the compare value
@@ -80,14 +88,14 @@ Function internalKeyQSort(A as Object, key as object, left as integer, right as 
     i = left
     j = right
     pivot = key(A[(left+right)/2])
-    while i <= j
-        while key(A[i]) < pivot
+    while (i <= j)
+        while (key(A[i]) < pivot)
             i = i + 1
         end while
-        while key(A[j]) > pivot
+        while (key(A[j]) > pivot)
             j = j - 1
         end while
-        if (i <= j)
+        if (i <= j) then
             tmp = A[i]
             A[i] = A[j]
             A[j] = tmp
@@ -95,12 +103,12 @@ Function internalKeyQSort(A as Object, key as object, left as integer, right as 
             j = j - 1
         end if
     end while
-    if (left < j)
+    if (left < j) then
         internalKeyQSort(A, key, left, j)
-    endif
-    if (i < right)
+    end if
+    if (i < right) then
         internalKeyQSort(A, key, i, right)
-    end if        
+    end if
 End Function
 
 ' quicksort an array using an indentically sized array that holds the comparison values
@@ -108,14 +116,14 @@ Function internalKeyArrayQSort(A as Object, keys as object, left as integer, rig
     i = left
     j = right
     pivot = keys[A[(left+right)/2]]
-    while i <= j
-        while keys[A[i]] < pivot
+    while (i <= j)
+        while (keys[A[i]] < pivot)
             i = i + 1
         end while
-        while keys[A[j]] > pivot
+        while (keys[A[j]] > pivot)
             j = j - 1
         end while
-        if (i <= j)
+        if (i <= j) then
             tmp = A[i]
             A[i] = A[j]
             A[j] = tmp
@@ -123,12 +131,12 @@ Function internalKeyArrayQSort(A as Object, keys as object, left as integer, rig
             j = j - 1
         end if
     end while
-    if (left < j)
+    if (left < j) then
         internalKeyArrayQSort(A, keys, left, j)
-    endif
-    if (i < right)
+    end if
+    if (i < right) then
         internalKeyArrayQSort(A, keys, i, right)
-    end if        
+    end if
 End function
 
 '******************************************************
@@ -139,23 +147,27 @@ End function
 ' the comparison values are pulled from there. In this case the Array
 ' to be sorted should be an array if integers 0 .. arraysize-1
 '******************************************************
-Function QuickSort(A as Object, key=invalid as dynamic) as void
+Sub QuickSort(A as Object, key=invalid as dynamic)
     atype = type(A)
-    if atype<>"roArray" then return
+    if (atype <> "roArray") then
+        return
+    end if
     ' weed out trivial arrays
     arraysize = A.Count()
-    if arraysize < 2 then return
-    if (key=invalid) then
+    if (arraysize < 2) then
+        return
+    end if
+    if (key = invalid) then
         internalQSort(A, 0, arraysize - 1)
     else
         keytype = type(key)
-        if keytype="Function" then
+        if (keytype = "Function") then
             internalKeyQSort(A, key, 0, arraysize - 1)
-        else if (keytype="roArray" or keytype="Array") and key.count() = arraysize then
+        else if ((keytype="roArray" or keytype="Array") and (key.count() = arraysize)) then
             internalKeyArrayQSort(A, key, 0, arraysize - 1)
         end if
     end if
-End Function
+End Sub
 
 '******************************************************
 'Insertion Sort
@@ -163,26 +175,29 @@ End Function
 '******************************************************
 Sub Sort(A as Object, key=invalid as dynamic)
 
-    if type(A)<>"roArray" then return
+    if (type(A) <> "roArray") then
+        return
+    end if
 
-    if (key=invalid) then
+    if (key = invalid) then
         for i = 1 to A.Count()-1
             value = A[i]
             j = i-1
-            while j>= 0 and A[j] > value
+            while (j >= 0 and A[j] > value)
                 A[j + 1] = A[j]
                 j = j-1
             end while
             A[j+1] = value
         next
-
     else
-        if type(key)<>"Function" then return
+        if (type(key) <> "Function") then
+            return
+        end if
         for i = 1 to A.Count()-1
             valuekey = key(A[i])
             value = A[i]
             j = i-1
-            while j>= 0 and key(A[j]) > valuekey
+            while (j >= 0 and key(A[j]) > valuekey)
                 A[j + 1] = A[j]
                 j = j-1
             end while
@@ -194,22 +209,22 @@ Sub Sort(A as Object, key=invalid as dynamic)
 End Sub
 
 ' insert value into array
-sub SortedInsert(A as object, value as string)
+Sub SortedInsert(A as object, value as string)
     count = a.count()
     a.push(value)       ' use push to make sure array size is correct now
-    if count = 0
+    if (count = 0) then
         return
-    endif
+    end if
     ' should do a binary search, but at least this is better than push and sort
     for i = count-1 to 0 step -1
-        if value >= a[i] then
+        if (value >= a[i]) then
             a[i+1] = value
             return
         end if
         a[i+1] = a[i]
     end for
     a[0] = value
-end sub
+End Sub
 
 
 '******************************************************'
@@ -221,182 +236,202 @@ end sub
 '
 'Always returns a string
 '******************************************************
-Function tostr(any)
+Function tostr(any) as String
     ret = AnyToString(any)
-    if ret = invalid ret = type(any)
-    if ret = invalid ret = "unknown" 'failsafe
+    if (ret = invalid) then
+        ret = type(any)
+    end if
+    if (ret = invalid) then
+        ret = "unknown" 'failsafe
+    end if
     return ret
 End Function
-
 
 '******************************************************
 'Get a " char as a string
 '******************************************************
-Function Quote()
+Function Quote() as String
     q$ = Chr(34)
     return q$
 End Function
 
-
 '******************************************************
-'isxmlelement
-'
 'Determine if the given object supports the ifXMLElement interface
 '******************************************************
 Function isxmlelement(obj as dynamic) As Boolean
-    if obj = invalid return false
-    if GetInterface(obj, "ifXMLElement") = invalid return false
+    if (obj = invalid) then
+        return false
+    end if
+    if (GetInterface(obj, "ifXMLElement") = invalid) then
+        return false
+    end if
     return true
 End Function
 
 
 '******************************************************
-'islist
-'
 'Determine if the given object supports the ifList interface
 '******************************************************
 Function islist(obj as dynamic) As Boolean
-    if obj = invalid return false
-    if GetInterface(obj, "ifArray") = invalid return false
+    if (obj = invalid) then
+        return false
+    end if
+    if (GetInterface(obj, "ifArray") = invalid) then
+        return false
+    end if
     return true
 End Function
 
-
 '******************************************************
-'isint
-'
-'Determine if the given object supports the ifInt interface
+' Determine if the given object supports the ifInt interface
 '******************************************************
 Function isint(obj as dynamic) As Boolean
-    if obj = invalid return false
-    if GetInterface(obj, "ifInt") = invalid return false
+    if (obj = invalid) then
+        return false
+    end if
+    if (GetInterface(obj, "ifInt") = invalid) then
+        return false
+    end if
     return true
 End Function
 
 '******************************************************
-'isfunc
+' Determine if the given argument is a function
+' @param obj the object to test
+' @return true if obj is a Function, false if it is not
 '******************************************************
 Function isfunc(obj as dynamic) As Boolean
     tf = type(obj)
-    return tf="Function" or tf="roFunction"
+    return (tf = "Function" or tf = "roFunction")
 End Function
 
 '******************************************************
-' validstr
-'
 ' always return a valid string. if the argument is
 ' invalid or not a string, return an empty string
 '******************************************************
 Function validstr(obj As Dynamic) As String
-    if isnonemptystr(obj) return obj
+    if (isnonemptystr(obj)) then
+        return obj
+    end if
     return ""
 End Function
 
-
 '******************************************************
-'isstr
-'
-'Determine if the given object supports the ifString interface
+' Determine if the given object supports the ifString interface
 '******************************************************
 Function isstr(obj as dynamic) As Boolean
-    if obj = invalid return false
-    if GetInterface(obj, "ifString") = invalid return false
+    if (obj = invalid) then
+        return false
+    end if
+    if (GetInterface(obj, "ifString") = invalid) then
+        return false
+    end if
     return true
 End Function
 
-
 '******************************************************
-'isnonemptystr
-'
-'Determine if the given object supports the ifString interface
-'and returns a string of non zero length
+' Determine if the given object supports the ifString interface
+' and returns a string of non zero length
 '******************************************************
 Function isnonemptystr(obj)
-    if isnullorempty(obj) return false
+    if (isnullorempty(obj)) then
+        return false
+    end if
     return true
 End Function
 
-
 '******************************************************
-'isnullorempty
-'
-'Determine if the given object is invalid or supports
-'the ifString interface and returns a string of non zero length
+' Determine if the given object is invalid or supports
+' the ifString interface and returns a string of non zero length
 '******************************************************
-Function isnullorempty(obj)
-    if obj = invalid return true
-    if not isstr(obj) return true
-    if Len(obj) = 0 return true
+Function isnullorempty(obj) as Boolean
+    if (obj = invalid) then
+        return true
+    end if
+    if (not isstr(obj)) then
+        return true
+    end if
+    if (Len(obj) = 0) then
+        return true
+    end if
     return false
 End Function
 
-
 '******************************************************
-'isbool
-'
-'Determine if the given object supports the ifBoolean interface
+' Determine if the given object supports the ifBoolean interface
 '******************************************************
 Function isbool(obj as dynamic) As Boolean
-    if obj = invalid return false
-    if GetInterface(obj, "ifBoolean") = invalid return false
+    if (obj = invalid) then
+        return false
+    end if
+    if (GetInterface(obj, "ifBoolean") = invalid) then
+        return false
+    end if
     return true
 End Function
 
 
 '******************************************************
-'isfloat
-'
-'Determine if the given object supports the ifFloat interface
+' Determine if the given object supports the ifFloat interface
 '******************************************************
 Function isfloat(obj as dynamic) As Boolean
-    if obj = invalid return false
-    if GetInterface(obj, "ifFloat") = invalid return false
+    if (obj = invalid) then
+        return false
+    end if
+    if (GetInterface(obj, "ifFloat") = invalid) then
+        return false
+    end if
     return true
 End Function
 
 
 '******************************************************
-'strtobool
-'
-'Convert string to boolean safely. Don't crash
-'Looks for certain string values
+' Convert string to boolean safely. Don't crash
+' Looks for certain string values
 '******************************************************
 Function strtobool(obj As dynamic) As Boolean
-    if obj = invalid return false
-    if type(obj) <> "roString" return false
+    if (obj = invalid) then
+        return false
+    end if
+    if (type(obj) <> "roString") then
+        return false
+    end if
     o = strTrim(obj)
     o = Lcase(o)
-    if o = "true" return true
-    if o = "t" return true
-    if o = "y" return true
-    if o = "1" return true
+    if (o = "true") then
+        return true
+    end if
+    if (o = "t") then
+        return true
+    end if
+    if (o = "y") then
+        return true
+    end if
+    if (o = "1") then
+        return true
+    end if
     return false
 End Function
 
-
 '******************************************************
-'itostr
-'
-'Convert int to string. This is necessary because
-'the builtin Stri(x) prepends whitespace
+' Convert int to string. This is necessary because
+' the builtin Stri(x) prepends whitespace
 '******************************************************
 Function itostr(i As Integer) As String
     str = Stri(i)
     return strTrim(str)
 End Function
 
-
 '******************************************************
-'Get remaining hours from a total seconds
+' Get 'aining hours from a total seconds
 '******************************************************
 Function hoursLeft(seconds As Integer) As Integer
     hours% = seconds / 3600
     return hours%
 End Function
 
-
 '******************************************************
-'Get remaining minutes from a total seconds
+' Get 'aining minutes from a total seconds
 '******************************************************
 Function minutesLeft(seconds As Integer) As Integer
     hours% = seconds / 3600
@@ -405,19 +440,19 @@ Function minutesLeft(seconds As Integer) As Integer
     return mins%
 End Function
 
-
 '******************************************************
-'Pluralize simple strings like "1 minute" or "2 minutes"
+' Pluralize simple strings like "1 minute" or "2 minutes"
 '******************************************************
 Function Pluralize(val As Integer, str As String) As String
     ret = itostr(val) + " " + str
-    if val <> 1 ret = ret + "s"
+    if (val <> 1) then
+        ret = ret + "s"
+    end if
     return ret
 End Function
 
-
 '******************************************************
-'Trim a string
+' Trim a string
 '******************************************************
 Function strTrim(str As String) As String
     st=CreateObject("roString")
@@ -427,33 +462,32 @@ End Function
 
 
 '******************************************************
-'Tokenize a string. Return roList of strings
+' Tokenize a string. Return roList of strings
 '******************************************************
 Function strTokenize(str As String, delim As String) As Object
-    st=CreateObject("roString")
+    st = CreateObject("roString")
     st.SetString(str)
     return st.Tokenize(delim)
 End Function
 
-
 '******************************************************
-'Replace substrings in a string. Return new string
+' Replace substrings in a string. Return new string
 '******************************************************
 Function strReplace(basestr As String, oldsub As String, newsub As String) As String
     newstr = ""
 
     i = 1
-    while i <= Len(basestr)
+    while (i <= Len(basestr))
         x = Instr(i, basestr, oldsub)
-        if x = 0 then
+        if (x = 0) then
             newstr = newstr + Mid(basestr, i)
             exit while
-        endif
+        end if
 
-        if x > i then
+        if (x > i) then
             newstr = newstr + Mid(basestr, i, x-i)
             i = x
-        endif
+        end if
 
         newstr = newstr + newsub
         i = i + Len(oldsub)
@@ -462,143 +496,156 @@ Function strReplace(basestr As String, oldsub As String, newsub As String) As St
     return newstr
 End Function
 
-
 '******************************************************
-'Get all XML subelements by name
+' Get all XML subelements by name
 '
-'return list of 0 or more elements
+' return list of 0 or more elements
 '******************************************************
 Function GetXMLElementsByName(xml As Object, name As String) As Object
     list = CreateObject("roArray", 100, true)
-    if islist(xml.GetBody()) = false return list
+    if (not(islist(xml.GetBody()))) then
+        return list
+    end if
 
     for each e in xml.GetBody()
-        if e.GetName() = name then
+        if (e.GetName() = name) then
             list.Push(e)
-        endif
+        end if
     next
 
     return list
 End Function
 
-
 '******************************************************
-'Get all XML subelement's string bodies by name
+' Get all XML subelement's string bodies by name
 '
-'return list of 0 or more strings
+' return list of 0 or more strings
 '******************************************************
 Function GetXMLElementBodiesByName(xml As Object, name As String) As Object
     list = CreateObject("roArray", 100, true)
-    if islist(xml.GetBody()) = false return list
+    if (not(islist(xml.GetBody()))) then
+        return list
+    end if
 
     for each e in xml.GetBody()
-        if e.GetName() = name then
+        if (e.GetName() = name) then
             b = e.GetBody()
-            if type(b) = "roString" list.Push(b)
-        endif
+            if (type(b) = "roString") then
+                list.Push(b)
+            end if
+        end if
     next
 
     return list
 End Function
 
-
 '******************************************************
-'Get first XML subelement by name
+' Get first XML subelement by name
 '
-'return invalid if not found, else the element
+' return invalid if not found, else the element
 '******************************************************
-Function GetFirstXMLElementByName(xml As Object, name As String) As dynamic
-    if islist(xml.GetBody()) = false return invalid
+Function GetFirstXMLElementByName(xml As Object, name As String) As Dynamic
+    if (not(islist(xml.GetBody()))) then
+        return invalid
+    end if
 
     for each e in xml.GetBody()
-        if e.GetName() = name return e
+        if (e.GetName() = name) then
+            return e
+        end if
     next
 
     return invalid
 End Function
 
-
 '******************************************************
-'Get first XML subelement's string body by name
+' Get first XML subelement's string body by name
 '
-'return invalid if not found, else the subelement's body string
+' return invalid if not found, else the subelement's body string
 '******************************************************
-Function GetFirstXMLElementBodyStringByName(xml As Object, name As String) As dynamic
+Function GetFirstXMLElementBodyStringByName(xml As Object, name As String) As Dynamic
     e = GetFirstXMLElementByName(xml, name)
-    if e = invalid return invalid
-    if type(e.GetBody()) <> "roString" return invalid
+    if (e = invalid) then
+        return invalid
+    end if
+    if (type(e.GetBody()) <> "roString") then
+        return invalid
+    end if
     return e.GetBody()
 End Function
 
-
 '******************************************************
-'Get the xml element as an integer
+' Get the xml element as an integer
 '
-'return invalid if body not a string, else the integer as converted by strtoi
+' return invalid if body not a string, else the integer as converted by strtoi
 '******************************************************
-Function GetXMLBodyAsInteger(xml As Object) As dynamic
-    if type(xml.GetBody()) <> "roString" return invalid
+Function GetXMLBodyAsInteger(xml As Object) As Dynamic
+    if (type(xml.GetBody()) <> "roString") then
+        return invalid
+    end if
     return strtoi(xml.GetBody())
 End Function
 
 
 '******************************************************
-'Parse a string into a roXMLElement
+' Parse a string into a roXMLElement
 '
-'return invalid on error, else the xml object
+' return invalid on error, else the xml object
 '******************************************************
-Function ParseXML(str As String) As dynamic
-    if str = invalid return invalid
-    xml=CreateObject("roXMLElement")
-    if not xml.Parse(str) return invalid
+Function ParseXML(str As String) As Dynamic
+    if (str = invalid) then
+        return invalid
+    end if
+    xml = CreateObject("roXMLElement")
+    if (not(xml.Parse(str))) then
+        return invalid
+    end if
     return xml
 End Function
 
-
 '******************************************************
-'Get XML sub elements whose bodies are strings into an associative array.
-'subelements that are themselves parents are skipped
-'namespace :'s are replaced with _'s
+' Get XML sub elements whose bodies are strings into an associative array.
+' subelements that are themselves parents are skipped
+' namespace :'s are replaced with _'s
 '
-'So an XML element like...
+' So an XML element like...
 '
-'<blah>
-'    <This>abcdefg</This>
-'    <Sucks>xyz</Sucks>
-'    <sub>
-'        <sub2>
-'        ....
-'        </sub2>
-'    </sub>
-'    <ns:doh>homer</ns:doh>
-'</blah>
+' <blah>
+'     <This>abcdefg</This>
+'     <Sucks>xyz</Sucks>
+'     <sub>
+'         <sub2>
+'         ....
+'         </sub2>
+'     </sub>
+'     <ns:doh>homer</ns:doh>
+' </blah>
 '
-'returns an AA with:
+' returns an AA with:
 '
-'aa.This = "abcdefg"
-'aa.Sucks = "xyz"
-'aa.ns_doh = "homer"
+' aa.This = "abcdefg"
+' aa.Sucks = "xyz"
+' aa.ns_doh = "homer"
 '
-'return an empty AA if nothing found
+' return an empty AA if nothing found
 '******************************************************
 Sub GetXMLintoAA(xml As Object, aa As Object)
     for each e in xml.GetBody()
         body = e.GetBody()
-        if type(body) = "roString" then
+        if (type(body) = "roString") then
             name = e.GetName()
             name = strReplace(name, ":", "_")
             aa.AddReplace(name, body)
-        endif
+        end if
     next
 End Sub
 
-
 '******************************************************
-'Walk an AA and print it
+' Walk an AA and print it
 '******************************************************
 Sub PrintAA(aa as Object)
     print "---- AA ----"
-    if aa = invalid
+    if (aa = invalid) then
         print "invalid"
         return
     else
@@ -608,16 +655,15 @@ Sub PrintAA(aa as Object)
             PrintAny(0, e + ": ", aa[e])
             cnt = cnt + 1
         next
-        if cnt = 0
+        if (cnt = 0) then
             PrintAny(0, "Nothing from foreach. Looks like :", aa)
-        endif
-    endif
+        end if
+    end if
     print "------------"
 End Sub
 
-
 '******************************************************
-'Walk a list and print it
+' Walk a list and print it
 '******************************************************
 Sub PrintList(list as Object)
     print "---- list ----"
@@ -625,9 +671,8 @@ Sub PrintList(list as Object)
     print "--------------"
 End Sub
 
-
 '******************************************************
-'Print an associativearray
+' Print an associativearray
 '******************************************************
 Sub PrintAnyAA(depth As Integer, aa as Object)
     for each e in aa
@@ -636,9 +681,8 @@ Sub PrintAnyAA(depth As Integer, aa as Object)
     next
 End Sub
 
-
 '******************************************************
-'Print a list with indent depth
+' Print a list with indent depth
 '******************************************************
 Sub PrintAnyList(depth As Integer, list as Object)
     i = 0
@@ -648,138 +692,153 @@ Sub PrintAnyList(depth As Integer, list as Object)
     next
 End Sub
 
-
 '******************************************************
-'Print anything
+' Print anything
 '******************************************************
 Sub PrintAny(depth As Integer, prefix As String, any As Dynamic)
-    if depth >= 10
-        print "**** TOO DEEP " + itostr(5)
-        return
-    endif
-    prefix = string(depth*2," ") + prefix
+    if (depth >= 10) then
+        print "**** TOO DEEP, limiting to 10.. " + itostr(5)
+        depth = 10
+    end if
+    prefix = string(depth * 2," ") + prefix
     depth = depth + 1
     str = AnyToString(any)
-    if str <> invalid
+    if (str <> invalid) then
         print prefix + str
         return
-    endif
-    if type(any) = "roAssociativeArray"
+    end if
+    if (type(any) = "roAssociativeArray") then
         print prefix + "(assocarr)..."
         PrintAnyAA(depth, any)
         return
-    endif
-    if islist(any) = true
+    end if
+    if (islist(any) = true) then
         print prefix + "(list of " + itostr(any.Count()) + ")..."
         PrintAnyList(depth, any)
         return
-    endif
+    end if
 
     print prefix + "?" + type(any) + "?"
 End Sub
 
-
 '******************************************************
-'Print an object as a string for debugging. If it is
-'very long print the first 500 chars.
+' Print an object as a string for debugging. If it is
+' very long print the first 500 chars.
 '******************************************************
 Sub Dbg(pre As Dynamic, o=invalid As Dynamic)
     p = AnyToString(pre)
-    if p = invalid p = ""
-    if o = invalid o = ""
+    if (p = invalid) then
+        p = ""
+    end if
+    if (o = invalid) then
+        o = ""
+    end if
     s = AnyToString(o)
-    if s = invalid s = "???: " + type(o)
-    if Len(s) > 4000
+    if (s = invalid) then
+        s = "???: " + type(o)
+    end if
+    if (Len(s) > 4000) then
         s = Left(s, 4000)
-    endif
+    end if
     print p + s
 End Sub
 
-
 '******************************************************
-'Try to convert anything to a string. Only works on simple items.
+' Try to convert anything to a string. Only works on simple items.
 '
-'Test with this script...
+' Test with this script...
 '
-'    s$ = "yo1"
-'    ss = "yo2"
-'    i% = 111
-'    ii = 222
-'    f! = 333.333
-'    ff = 444.444
-'    d# = 555.555
-'    dd = 555.555
-'    bb = true
+'     s$ = "yo1"
+'     ss = "yo2"
+'     i% = 111
+'     ii = 222
+'     f! = 333.333
+'     ff = 444.444
+'     d# = 555.555
+'     dd = 555.555
+'     bb = true
 '
-'    so = CreateObject("roString")
-'    so.SetString("strobj")
-'    io = CreateObject("roInt")
-'    io.SetInt(666)
-'    tm = CreateObject("roTimespan")
+'     so = CreateObject("roString")
+'     so.SetString("strobj")
+'     io = CreateObject("roInt")
+'     io.SetInt(666)
+'     tm = CreateObject("roTimespan")
 '
-'    Dbg("", s$ ) 'call the Dbg() function which calls AnyToString()
-'    Dbg("", ss )
-'    Dbg("", "yo3")
-'    Dbg("", i% )
-'    Dbg("", ii )
-'    Dbg("", 2222 )
-'    Dbg("", f! )
-'    Dbg("", ff )
-'    Dbg("", 3333.3333 )
-'    Dbg("", d# )
-'    Dbg("", dd )
-'    Dbg("", so )
-'    Dbg("", io )
-'    Dbg("", bb )
-'    Dbg("", true )
-'    Dbg("", tm )
+'     Dbg("", s$ ) 'call the Dbg() function which calls AnyToString()
+'     Dbg("", ss )
+'     Dbg("", "yo3")
+'     Dbg("", i% )
+'     Dbg("", ii )
+'     Dbg("", 2222 )
+'     Dbg("", f! )
+'     Dbg("", ff )
+'     Dbg("", 3333.3333 )
+'     Dbg("", d# )
+'     Dbg("", dd )
+'     Dbg("", so )
+'     Dbg("", io )
+'     Dbg("", bb )
+'     Dbg("", true )
+'     Dbg("", tm )
 '
-'try to convert an object to a string. return invalid if can't
+' try to convert an object to a string. return invalid if can't
 '******************************************************
-Function AnyToString(any As Dynamic) As dynamic
-    if any = invalid return "invalid"
-    if isstr(any) return any
-    if isint(any) return itostr(any)
-    if isbool(any)
-        if any = true return "true"
+Function AnyToString(any As Dynamic) As Dynamic
+    if (any = invalid) then
+        return "invalid"
+    end if
+    if (isstr(any)) then
+        return any
+    end if
+    if (isint(any)) then
+        return itostr(any)
+    end if
+    if (isbool(any)) then
+        if (any = true) then
+            return "true"
+        end if
         return "false"
-    endif
-    if isfloat(any) return Str(any)
-    if type(any) = "roTimespan" return itostr(any.TotalMilliseconds()) + "ms"
+    end if
+    if (isfloat(any)) then
+        return Str(any)
+    end if
+    if (type(any) = "roTimespan") then
+        return itostr(any.TotalMilliseconds()) + "ms"
+    end if
     return invalid
 End Function
 
-
 '******************************************************
-'Walk an XML tree and print it
+' Walk an XML tree and print it
 '******************************************************
 Sub PrintXML(element As Object, depth As Integer)
     print tab(depth*3);"Name: [" + element.GetName() + "]"
-    if invalid <> element.GetAttributes() then
+    if (invalid <> element.GetAttributes()) then
         print tab(depth*3);"Attributes: ";
         for each a in element.GetAttributes()
             print a;"=";left(element.GetAttributes()[a], 4000);
-            if element.GetAttributes().IsNext() then print ", ";
+            if (element.GetAttributes().IsNext()) then
+                print ", ";
+            end if
         next
         print
-    endif
+    end if
 
-    if element.GetBody()=invalid then
+    if (element.GetBody() = invalid) then
         ' print tab(depth*3);"No Body"
-    else if type(element.GetBody())="roString" then
+    else if (type(element.GetBody()) = "roString") then
         print tab(depth*3);"Contains string: [" + left(element.GetBody(), 4000) + "]"
     else
         print tab(depth*3);"Contains list:"
         for each e in element.GetBody()
             PrintXML(e, depth+1)
         next
-    endif
+    end if
     print
 end sub
 
-
 '******************************************************
-'Dump the bytes of a string
+' Dump the bytes of a string
 '******************************************************
 Sub DumpString(str As String)
     print "DUMP STRING"
@@ -796,25 +855,23 @@ Sub DumpString(str As String)
     print "---------------------------"
 End Sub
 
-
 '******************************************************
-'Validate parameter is the correct type
+' Validate parameter is the correct type
 '******************************************************
 Function validateParam(param As Object, paramType As String,functionName As String, allowInvalid = false) As Boolean
-    if type(param) = paramType then
+    if (type(param) = paramType) then
         return true
-    endif
+    end if
 
-    if allowInvalid = true then
-        if type(param) = invalid then
+    if (allowInvalid = true) then
+        if (type(param) = invalid) then
             return true
-        endif
-    endif
+        end if
+    end if
 
     print "invalid parameter of type "; type(param); " for "; paramType; " in function "; functionName
     return false
 End Function
-
 
 Function wrap(num As Integer, size As Dynamic) As Integer
     ' wraps via mod if size works
@@ -822,15 +879,14 @@ Function wrap(num As Integer, size As Dynamic) As Integer
     ' (sort of an indefinite size wrap where we assume
     '  size is at least num and punt with negatives)
     remainder = num
-    if isint(size) and size<>0
+    if (isint(size) and size <> 0) then
         base = int(num/size)*size
         remainder = num - base
-    else if num<0
+    else if (num < 0) then
         remainder = 0
     end if
     return remainder
 End Function
-
 
 Function simpleJSONParser( jsonString As String ) As Object
         q = chr(34)
@@ -851,7 +907,7 @@ Function simpleJSONParser( jsonString As String ) As Object
         ' Replace escaped quotes
         jsonString = regexQuote.ReplaceAll( jsonString, q + " + q + " + q )
 
-        while regexKeyUnspace.isMatch( jsonString )
+        while (regexKeyUnspace.isMatch( jsonString ))
                 jsonString = regexKeyUnspace.ReplaceAll( jsonString, "\1"+q+"\2\3\4"+q+": \5" )
         end while
 
