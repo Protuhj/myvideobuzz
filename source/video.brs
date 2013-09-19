@@ -591,8 +591,11 @@ Function GetVideoMetaData(videos As Object)
         meta.UserID                 = video.GetUserID()
         meta.EditLink               = video.GetEditLink(video.xml)
 
-        meta.StreamFormat="mp4"
-        meta.Streams=[]
+        meta.StreamFormat           = "mp4"
+        meta.Live                   = false
+        meta.Streams                = []
+        meta.PlayStart              = 0
+        meta.SwitchingStrategy      = "no-adaptation"
         'meta.StreamBitrates=[]
         'meta.StreamQualities=[]
         'meta.StreamUrls=[]
@@ -645,8 +648,11 @@ Function get_length_as_human_readable(length As Dynamic) As String
         else
             return Stri(minutes%) + "m" + Stri(seconds%) + "s"
         end if
-
+    else if ( len% = 0 ) then
+        return "Live Stream"
     end if
+    ' Default return
+    return "Unknown"
 End Function
 
 Function get_xml_author() As Dynamic
@@ -709,8 +715,10 @@ Sub youtube_display_video_springboard(theVideo As Object, breadcrumb As String, 
     m.video     = theVideo
     ''printAny(0, "videos:", videos)
     screen.SetDescriptionStyle("movie")
-    screen.AllowNavLeft(true)
-    screen.AllowNavRight(true)
+    if (videos.Count() > 1) then
+        screen.AllowNavLeft(true)
+        screen.AllowNavRight(true)
+    end if
     screen.SetPosterStyle("rounded-rect-16x9-generic")
     screen.SetDisplayMode("zoom-to-fill")
     screen.SetBreadcrumbText(breadcrumb, "Video")
@@ -729,17 +737,15 @@ Sub youtube_display_video_springboard(theVideo As Object, breadcrumb As String, 
             else if (msg.isButtonPressed()) then
                 'print "Button pressed: "; msg.GetIndex(); " " msg.GetData()
                 if (msg.GetIndex() = 0) then ' Play
-                    streamQualities = video_get_qualities(m.video.id)
-                    if (streamQualities <> invalid) then
-                        m.video.Streams = streamQualities
+                    result = video_get_qualities(m.video)
+                    if (result = 0) then
                         DisplayVideo(m.video)
                     end if
                 else if (msg.GetIndex() = 1) then ' Play All
                     for i = idx to videos.Count() - 1  Step +1
                         selectedVideo = videos[i]
-                        streamQualities = video_get_qualities(selectedVideo.id)
-                        if (streamQualities <> invalid) then
-                            selectedVideo.Streams = streamQualities
+                        result = video_get_qualities(selectedVideo)
+                        if (result = 0) then
                             ret = DisplayVideo(selectedVideo)
                             if (ret > 0) then
                                 Exit For
@@ -759,23 +765,27 @@ Sub youtube_display_video_springboard(theVideo As Object, breadcrumb As String, 
                 end if
             else if (msg.isremoteKeyPressed()) then
                 if (msg.GetIndex() = 4) then  ' left
-                    idx = idx - 1
-                    if ( idx < 0 ) then
-                        ' Last video is the 'next' video link
-                        idx = videos.Count() - 2
+                    if (videos.Count() > 1) then
+                        idx = idx - 1
+                        if ( idx < 0 ) then
+                            ' Last video is the 'next' video link
+                            idx = videos.Count() - 2
+                        end if
+                        m.video = videos[idx]
+                        buttons = m.BuildButtons()
+                        screen.SetContent( m.video )
                     end if
-                    m.video = videos[idx]
-                    buttons = m.BuildButtons()
-                    screen.SetContent( m.video )
                 else if (msg.GetIndex() = 5) then ' right
-                    idx = idx + 1
-                    if ( idx = videos.Count() - 1 ) then
-                        ' Last video is the 'next' video link
-                        idx = 0
+                    if (videos.Count() > 1) then
+                        idx = idx + 1
+                        if ( idx = videos.Count() - 1 ) then
+                            ' Last video is the 'next' video link
+                            idx = 0
+                        end if
+                        m.video = videos[idx]
+                        buttons = m.BuildButtons()
+                        screen.SetContent( m.video )
                     end if
-                    m.video = videos[idx]
-                    buttons = m.BuildButtons()
-                    screen.SetContent( m.video )
                 end if
             else
                 'print "Unknown event: "; msg.GetType(); " msg: "; msg.GetMessage()
@@ -923,13 +933,12 @@ Function parseVideoFormatsMap(videoInfo As String) As Object
 
 End Function
 
-function getMP4Url(videoIdOrUrl as string, timeout = 0 as integer, loginCookie = "" as string) as object
-    mp4VideoList = {sdUrl: "", hdUrl: "", hd1080pUrl: "", fallback1: "", fallback2: ""}
-    streamQualities = []
-    if (Left(LCase(videoIdOrUrl), 4) = "http") then
-        url = videoIdOrUrl
+function getMP4Url(video as Object, timeout = 0 as integer, loginCookie = "" as string) as object
+    video.Streams.Clear()
+    if (Left(LCase(video.id), 4) = "http") then
+        url = video.id
     else
-        url = "http://www.youtube.com/get_video_info?hl=en&el=detailpage&video_id=" + videoIdOrUrl
+        url = "http://www.youtube.com/get_video_info?hl=en&el=detailpage&video_id=" + video.id
     end if
     htmlString = ""
     port = CreateObject("roMessagePort")
@@ -955,88 +964,74 @@ function getMP4Url(videoIdOrUrl as string, timeout = 0 as integer, loginCookie =
     end if
     urlEncodedFmtStreamMap = CreateObject("roRegex", "url_encoded_fmt_stream_map=([^(" + Chr(34) + "|&|$)]*)", "").Match(htmlString)
     if (urlEncodedFmtStreamMap.Count() > 1) then
-        commaSplit = CreateObject("roRegex", "%2C", "").Split(urlEncodedFmtStreamMap [1])
-        for each commaItem in commaSplit
-            pair = {itag: "", url: "", sig: ""}
-            ampersandSplit = CreateObject("roRegex", "%26", "").Split(commaItem)
-            for each ampersandItem in ampersandSplit
-                equalsSplit = CreateObject("roRegex", "%3D", "").Split(ampersandItem)
-                if (equalsSplit.Count() = 2) then
-                    pair[equalsSplit [0]] = equalsSplit [1]
+        if (not(strTrim(urlEncodedFmtStreamMap[1]) = "")) then
+            commaSplit = CreateObject("roRegex", "%2C", "").Split(urlEncodedFmtStreamMap [1])
+            for each commaItem in commaSplit
+                pair = {itag: "", url: "", sig: ""}
+                ampersandSplit = CreateObject("roRegex", "%26", "").Split(commaItem)
+                for each ampersandItem in ampersandSplit
+                    equalsSplit = CreateObject("roRegex", "%3D", "").Split(ampersandItem)
+                    if (equalsSplit.Count() = 2) then
+                        pair[equalsSplit [0]] = equalsSplit [1]
+                    end if
+                end for
+                if (pair.url <> "" and Left(LCase(pair.url), 4) = "http") then
+                    if (pair.sig <> "") then
+                        signature = "&signature=" + pair.sig
+                    else
+                        signature = ""
+                    end if
+                    urlDecoded = ut.Unescape(ut.Unescape(pair.url + signature))
+                    ' print "urlDecoded: " ; urlDecoded
+                    ' Determined from here: http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
+                    if (pair.itag = "18") then
+                        ' 18 is MP4 270p/360p H.264 at .5 Mbps video bitrate
+                        video.Streams.Push({url: urlDecoded, bitrate: 512, quality: false, contentid: pair.itag})
+                    else if (pair.itag = "22") then
+                        ' 22 is MP4 720p H.264 at 2-2.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
+                        video.Streams.Push({url: urlDecoded, bitrate: 2969, quality: true, contentid: pair.itag})
+                    else if (pair.itag = "37") then
+                        ' 37 is MP4 1080p H.264 at 3-5.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
+                        video.Streams.Push({url: urlDecoded, bitrate: 6041, quality: false, contentid: pair.itag })
+                    end if
                 end if
             end for
-            if (pair.url <> "" and Left(LCase(pair.url), 4) = "http") then
-                if (pair.sig <> "") then
-                    signature = "&signature=" + pair.sig
-                else
-                    signature = ""
-                end if
-                urlDecoded = ut.Unescape(ut.Unescape(pair.url + signature))
-                ' Determined from here: http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
-                if (pair.itag = "18") then
-                    ' 18 is MP4 270p/360p H.264 at .5 Mbps video bitrate
-                    streamQualities.Push({url: urlDecoded, bitrate: 512, quality: false, contentid: pair.itag})
-                else if (pair.itag = "22") then
-                    ' 22 is MP4 720p H.264 at 2-2.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
-                    streamQualities.Push({url: urlDecoded, bitrate: 2969, quality: true, contentid: pair.itag})
-                else if (pair.itag = "37") then
-                    ' 37 is MP4 1080p H.264 at 3-5.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
-                    streamQualities.Push({url: urlDecoded, bitrate: 6041, quality: false, contentid: pair.itag })
-                end if
+            if (video.Streams.Count() > 0) then
+                video.Live          = false
+                video.StreamFormat  = "mp4"
+                video.PlayStart     = 0
             end if
-        end for
+        else
+            hlsUrl = CreateObject("roRegex", "hlsvp=([^(" + Chr(34) + "|&|$)]*)", "").Match(htmlString)
+            if (urlEncodedFmtStreamMap.Count() > 1) then
+                urlDecoded = ut.Unescape(ut.Unescape(ut.Unescape(hlsUrl[1])))
+                'print "Found hlsVP: " ; urlDecoded
+                video.Streams.Clear()
+                video.Live              = true
+                ' Set the PlayStart sufficiently large so it starts at 'Live' position
+                video.PlayStart         = 500000
+                video.StreamFormat      = "hls"
+                'video.SwitchingStrategy = "unaligned-segments"
+                video.SwitchingStrategy = "minimum-adaptation"
+                video.Streams.Push({url: urlDecoded, bitrate: 0, quality: false, contentid: -1})
+            end if
+            
+        end if
+    else
+        print ("Nothing in urlEncodedFmtStreamMap")
     end if
-
-    return streamQualities
+    return video.Streams
 end function
 
 
-Function video_get_qualities(videoID as String) As Object
+Function video_get_qualities(video as Object) As Integer
 
-    videoFormats = getMP4Url(videoID)
-    if (videoFormats.Count() > 0) then
-        return videoFormats
-    else
-        'ShowErrorDialog("Having trouble finding YouTube's video formats map...")
-        problem = ShowDialogNoButton("", "Having trouble finding YouTube's video formats map...")
-        sleep(3000)
-        problem.Close()
+    getMP4Url(video)
+    if (video.Streams.Count() > 0) then
+        return 0
     end if
-    return invalid
-
-
-    'http = NewHttp("http://www.youtube.com/watch?v="+videoID)
-    http = NewHttp("http://www.youtube.com/get_video_info?video_id="+videoID)
-    rsp = http.getToStringWithTimeout(10)
-    if (rsp <> invalid) then
-
-        videoFormats = parseVideoFormatsMap(rsp)
-        if (videoFormats <> invalid) then
-            if (videoFormats.Count() > 0) then
-                return videoFormats
-            end if
-        else
-            'try again with full youtube page
-            dialog = ShowPleaseWait("Looking for compatible videos...", invalid)
-            http = NewHttp("http://www.youtube.com/watch?v=" + videoID)
-            rsp = http.getToStringWithTimeout(30)
-            if (rsp <> invalid) then
-                videoFormats = parseVideoFormatsMap(rsp)
-                if (videoFormats <> invalid) then
-                    if (videoFormats.Count() > 0) then
-                        dialog.Close()
-                        return videoFormats
-                    end if
-                else
-                    dialog.Close()
-                    ShowErrorDialog("Having trouble finding YouTube's video formats map...")
-                end if
-            end if
-            dialog.Close()
-        end if
-    else
-        ShowErrorDialog("HTTP Request for get_video_info failed!")
-    end if
-
-    return invalid
+    problem = ShowDialogNoButton("", "Having trouble finding a Roku-compatible stream...")
+    sleep(3000)
+    problem.Close()
+    return -1
 End Function
