@@ -493,7 +493,14 @@ Sub youtube_display_video_list(videos As Object, title As String, links=invalid,
                     youtube.VideoDetails(video[set_idx], youtube.CurrentPageTitle, video, set_idx)
                 end if
             end function]
-        uitkDoPosterMenu(metadata, screen, onselect)
+        onplay = [1, metadata, m,
+            Function(video, youtube, set_idx)
+                result = video_get_qualities(video[set_idx])
+                if (result = 0) then
+                    DisplayVideo(video[set_idx])
+                end if
+            end Function]
+        uitkDoPosterMenu(metadata, screen, onselect, onplay)
     else
         uitkDoMessage("No videos found.", screen)
     end if
@@ -763,7 +770,7 @@ Sub youtube_display_video_springboard(theVideo As Object, breadcrumb As String, 
                 else if (msg.GetIndex() = 6) then
                     m.removeFavorite(m.video, buttons)
                 end if
-            else if (msg.isremoteKeyPressed()) then
+            else if (msg.isRemoteKeyPressed()) then
                 if (msg.GetIndex() = 4) then  ' left
                     if (videos.Count() > 1) then
                         idx = idx - 1
