@@ -46,13 +46,8 @@ Sub ShowHomeScreen()
         menudata.Push({ShortDescriptionLine1:"My Subscriptions", FeedURL:"users/" + ytusername + "/subscriptions?v=2&max-results=50", Category:"true", ShortDescriptionLine2:"Browse your Subscriptions", HDPosterUrl:"pkg:/images/YourSubscriptions.jpg", SDPosterUrl:"pkg:/images/YourSubscriptions.jpg"})
         menudata.Push({ShortDescriptionLine1:"My Favorites", FeedURL:"users/" + ytusername + "/favorites?v=2&max-results=50", Category:"false", ShortDescriptionLine2:"Browse your favorite videos", HDPosterUrl:"pkg:/images/YourFavorites.jpg", SDPosterUrl:"pkg:/images/YourFavorites.jpg"})
     end if
-
-    menudata.Push({ShortDescriptionLine1:"Nursery Rhymes", FeedURL:"pkg:/xml/nursery.xml", Category:"true",  ShortDescriptionLine2:"Collection of featured Nursery Rhymes", HDPosterUrl:"pkg:/images/NurseryRhymes.jpg", SDPosterUrl:"pkg:/images/NurseryRhymes.jpg"})
     menudata.Push({ShortDescriptionLine1:"Top Channels", FeedURL:"pkg:/xml/topchannels.xml", Category:"true",  ShortDescriptionLine2:"Top Channels", HDPosterUrl:"pkg:/images/TopChannels.jpg", SDPosterUrl:"pkg:/images/TopChannels.jpg"})
-    menudata.Push({ShortDescriptionLine1:"Top Rated", FeedURL:"pkg:/xml/toprated.xml", Category:"true",  ShortDescriptionLine2:"Top Rated videos", HDPosterUrl:"pkg:/images/TopRated.jpg", SDPosterUrl:"pkg:/images/TopRated.jpg"})
-    menudata.Push({ShortDescriptionLine1:"Most Discussed", FeedURL:"pkg:/xml/mostdiscussed.xml", Category:"true",  ShortDescriptionLine2:"Most Discussed videos", HDPosterUrl:"pkg:/images/MostDiscussed.jpg", SDPosterUrl:"pkg:/images/MostDiscussed.jpg"})
-    menudata.Push({ShortDescriptionLine1:"Top Favorites", FeedURL:"pkg:/xml/topfav.xml", Category:"true",  ShortDescriptionLine2:"Top Favorites videos", HDPosterUrl:"pkg:/images/TopFavorites.jpg", SDPosterUrl:"pkg:/images/TopFavorites.jpg"})
-    menudata.Push({ShortDescriptionLine1:"Most Responded", FeedURL:"pkg:/xml/mostresponded.xml", Category:"true",  ShortDescriptionLine2:"Most Responded videos", HDPosterUrl:"pkg:/images/MostResponded.jpg", SDPosterUrl:"pkg:/images/MostResponded.jpg"})
+    menudata.Push({ShortDescriptionLine1:"Most Popular", FeedURL:"pkg:/xml/mostpopular.xml", Category:"true",  ShortDescriptionLine2:"Most Popular Videos", HDPosterUrl:"pkg:/images/MostPopular.jpg", SDPosterUrl:"pkg:/images/mostpopular.jpg"})
 
     onselect = [1, menudata, m.youtube,
         function(menu, youtube, set_idx)

@@ -1,0 +1,10 @@
+<feed>
+  <entry>
+    <title>Today</title>
+    <content type="application/atom+xml;type=feed" src="http://gdata.youtube.com/feeds/api/standardfeeds/most_popular?v=2&amp;max-results=50&amp;time=today"/>
+  </entry>
+  <entry>
+    <title>All Time</title>
+    <content type="application/atom+xml;type=feed" src="http://gdata.youtube.com/feeds/api/standardfeeds/most_popular?v=2&amp;max-results=50&amp;time=all_time"/>
+  </entry>
+</feed>
