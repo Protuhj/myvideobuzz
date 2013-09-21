@@ -28,7 +28,7 @@ Function uitkPreShowPosterMenu(ListStyle="flat-category" as String, breadA = "Ho
 end function
 
 
-Function uitkDoPosterMenu(posterdata, screen, onselect_callback=invalid) As Integer
+Function uitkDoPosterMenu(posterdata, screen, onselect_callback=invalid, onplay_callback=invalid) As Integer
 
     if (type(screen) <> "roPosterScreen") then
         'print "illegal type/value for screen passed to uitkDoPosterMenu()"
@@ -36,7 +36,7 @@ Function uitkDoPosterMenu(posterdata, screen, onselect_callback=invalid) As Inte
     end if
 
     screen.SetContentList(posterdata)
-
+    idx% = 0
     while (true)
         msg = wait(0, screen.GetMessagePort())
 
@@ -83,7 +83,19 @@ Function uitkDoPosterMenu(posterdata, screen, onselect_callback=invalid) As Inte
                 end if
             else if (msg.isScreenClosed()) then
                 return -1
+            else if (msg.isListItemFocused()) then
+                idx% = msg.GetIndex()
+            else if (msg.isRemoteKeyPressed()) then
+                ' If the play button is pressed on the video list, and the onplay_callback is valid, play the video
+                if (onplay_callback <> invalid AND msg.GetIndex() = 13) then
+                    userdata1 = onplay_callback[1]
+                    userdata2 = onplay_callback[2]
+                    f = onplay_callback[3]
+                    f(userdata1, userdata2, idx%)
+                end if
+                
             end if
+            
         end if
     end while
 End Function
