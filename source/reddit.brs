@@ -43,7 +43,7 @@ Sub ViewReddits(youtube as Object, url = "videos" as String)
     next
     ' Category selection function
      oncontent_callback = [categories, m,
-        function(categories, youtube, set_idx, unused)
+        function(categories, youtube, set_idx)
             if ( categories.Count() > 0 ) then
                 categories[set_idx].links.Clear()
                 categories[set_idx].links.Push( categories[set_idx].link )
@@ -91,7 +91,7 @@ Sub ViewReddits(youtube as Object, url = "videos" as String)
                 else if ( video[set_idx]["isPlaylist"] = true ) then
                     ' printAA( video[set_idx] )
                     if ( video[set_idx]["Source"] = GetConstants().sYOUTUBE ) then
-                        youtube.FetchVideoList( video[set_idx]["URL"], video[set_idx]["TitleSeason"], invalid, invalid, "Loading playlist...", true )
+                        youtube.FetchVideoList( "GetPlaylistItems", video[set_idx]["TitleSeason"], false, {contentArg: video[set_idx]["PlaylistID"]}, "Loading playlist...", true )
                     else if ( video[set_idx]["Source"] = GetConstants().sGOOGLE_DRIVE ) then
                         getGDriveFolderContents( video[set_idx] )
                     end if
@@ -130,16 +130,12 @@ Function doQuery(multireddits = "videos" as String, includePrevious = false as B
     metadata = GetRedditMetaData( NewRedditVideoList( json.data.children ) )
 
     ' Now add the 'More results' button
-    for each link in response.links
-        if (type(link) = "roAssociativeArray") then
-            if (link.type = "next") then
-                metadata.Push({shortDescriptionLine1: "More Results", action: "next", HDPosterUrl:"pkg:/images/icon_next_episode.jpg", SDPosterUrl:"pkg:/images/icon_next_episode.jpg"})
-                if ( categoryObject <> invalid ) then
-                    categoryObject.links.Push( link.href )
-                end if
-            end if
+    if (response.links <> invalid AND response.links.next <> invalid) then
+        metadata.Push({shortDescriptionLine1: "More Results", action: "next", HDPosterUrl:"pkg:/images/icon_next_episode.jpg", SDPosterUrl:"pkg:/images/icon_next_episode.jpg"})
+        if ( categoryObject <> invalid ) then
+            categoryObject.links.Push( response.links.next.href )
         end if
-    end for
+    end if
     if ( includePrevious = true ) then
         metadata.Unshift({shortDescriptionLine1: "Back", action: "prev", HDPosterUrl:"pkg:/images/icon_prev_episode.jpg", SDPosterUrl:"pkg:/images/icon_prev_episode.jpg"})
     end if
@@ -179,7 +175,7 @@ Function QueryReddit(multireddits = "videos" as String) As Object
     ' print "----------------------------------"
 
     json = ParseJson(rsp)
-    links = CreateObject("roArray", 1, true)
+    links = {}
     if (json <> invalid) then
         if (json.data.after <> invalid) then
             link = CreateObject("roAssociativeArray")
@@ -188,7 +184,7 @@ Function QueryReddit(multireddits = "videos" as String) As Object
             http.RemoveParam("after", "urlParams")
             http.AddParam("after", json.data.after, "urlParams")
             link.href = http.GetURL()
-            links.Push(link)
+            links.next = link
         end if
         ' Reddit doesn't give a "real" previous URL
     end if
@@ -321,7 +317,7 @@ Function NewRedditVideo(jsonObject As Object, source = "YouTube" as String) As O
             if ( playlistId <> invalid ) then
                 video["isPlaylist"] = true
                 id = playlistId
-                video["URL"] = getPlaylistURL( playlistId )
+                video["PlaylistID"]  = playlistId
             else
                 id = invalid
             end if
