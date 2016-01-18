@@ -122,6 +122,11 @@ Function getOtherFuncs(primary_func as Object, jsText as String) as Object
     '""" Return all secondary functions used in primary_func. """
     'print("scanning javascript for secondary functions.")
     body = primary_func.body
+    
+    if ( body = invalid ) then
+        return {}
+    end if
+    
     body = body.Tokenize(";")
     '# standard function call; X=F(A,B,C...)
     funcCall = CreateObject( "roRegex", "(?:[$\w+])=([$\w]+)\(((?:\w+,?)+)\)$", "" )
