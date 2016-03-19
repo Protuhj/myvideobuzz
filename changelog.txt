@@ -1,11 +1,9 @@
+Version 2.1 Build 001
+    - Official release of 2.1.
+    - Current functionality seems stable.
 Version 2.0 Build 006
     - Fixes ANOTHER crash for YouTube music videos.
 Version 2.0 Build 005
     - Fixes another crash for YouTube music videos.
 Version 2.0 Build 004
     - Fixes crash when trying to load subscriptions that are private.
-Version 2.0 Build 003
-    - Fixes crash in YouTube music videos.
-Version 2.0 Build 002
-    - Changes the API call to get user videos from the GetActivity endpoint to the Search endpoint, this should allow more videos from the user's history to show.
-    - Fixes potential crash with bad API result.
