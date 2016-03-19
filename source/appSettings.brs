@@ -760,7 +760,7 @@ End Function
 
 Function LoadConstants() as Object
     this = {}
-    this.VERSION_STR       = "2.1.001"
+    this.VERSION_STR       = "2.1.0"
     this.USER_AGENT        = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:28.0) Gecko/20100101 Firefox/28.0"
     this.NO_PREFERENCE     = 0
     this.FORCE_HIGHEST     = 1
