@@ -22,7 +22,7 @@ address. Open any standard web browser and visit the following URL:
 
     http://<your.roku.ip.address>  # for example, http://192.168.1.7, or whatever address belongs to your Roku
 
-[**Download the source zip file**](https://github.com/Protuhj/myvideobuzz/releases/download/v2.0.0/MyVideoBuzz_v2_0_0.zip) and upload it to your Roku device.
+[**Download the source zip file**](https://github.com/Protuhj/myvideobuzz/releases/download/v2.1.0/MyVideoBuzz_v2_1_0.zip) and upload it to your Roku device.
 
 > **Caution**: _Do not_ unzip this file! Additionally, you must upload the entire file to your Roku.
 
@@ -30,7 +30,7 @@ Due to limitations in the sandboxing of development Roku channels, you can have 
 
 ### Alternative Installation Method: Windows users
 
-Download the whole repository &rarr; [**Current Release: 2.0.0**](https://github.com/Protuhj/myvideobuzz/archive/v2.0.0.zip). Then, unzip the archive, edit the included `\deploy\rokus.txt` file, and add your Roku device(s) network and authentication information to it, as illustrated in the example below:
+Download the whole repository &rarr; [**Current Release: 2.1.0**](https://github.com/Protuhj/myvideobuzz/archive/v2.1.0.zip). Then, unzip the archive, edit the included `\deploy\rokus.txt` file, and add your Roku device(s) network and authentication information to it, as illustrated in the example below:
 
     # <roku.ip.address><white space>rokudev:<rokuPassword>
     192.168.1.56 rokudev:rokupassword
