@@ -16,7 +16,7 @@ if $MAKE_ZIP
 then
     zip -r $ZIP_FILENAME --exclude=*.git* --exclude=*zip --exclude=deploy* *
 else
-    echo "not making zip file per settigs"
+    echo "not making zip file per settings"
 fi
 
 while read cfgline; do 
