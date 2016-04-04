@@ -1,3 +1,9 @@
+Version 2.1 Build 001
+    - Initial parsing of DASH manifests for HD playback.
+    - The channel will now attempt to play DASH first, if it fails, try playing the video again.
+    - If DASH fails, then it will fall back to SD playback.
+    - If you force video quality to 'lowest' in the settings, the channel won't attempt to get the DASH stream.
+    - Currently, music videos don't work with DASH, so if you don't want to be annoyed with having to play videos twice, just force quality to lowest.
 Version 2.1 Build 000
     - Official release of 2.1.
     - Current functionality seems stable.
@@ -5,5 +11,3 @@ Version 2.0 Build 006
     - Fixes ANOTHER crash for YouTube music videos.
 Version 2.0 Build 005
     - Fixes another crash for YouTube music videos.
-Version 2.0 Build 004
-    - Fixes crash when trying to load subscriptions that are private.

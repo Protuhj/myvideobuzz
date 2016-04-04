@@ -123,7 +123,7 @@ Sub ShowHomeScreen()
 
     ' Code to test specific video IDs
     ' Each of these is age-restricted.
-    ' ids = []
+    'ids = []
     'https://www.youtube.com/watch?v=PRZjnGUGXBI
     'ids.push("PRZjnGUGXBI") ' VEVO turd
     'ids.push("1EROmqidZQc")
@@ -132,7 +132,15 @@ Sub ShowHomeScreen()
     'ids.push("UMyoCr2MnpM")
     'ids.push("5_yOGBzBTdc")
     ' ids.push("_ovdm2yX4MA") ' AVICII VEVO
-    ' youtube.FetchVideoList( "ExecBatchQueryV3", "Vidyas", false, { contentArg: ids, noPages: true} )
+    'ids.push("4cNDmPlCTiw") ' HD video that failed
+    'ids.push("baMyINaV4ms") ' DASH video with signature that STILL fails
+
+    'res = youtube.ExecBatchQueryV3( ids )
+    'videos = youtube.newVideoListFromJSON( res.items )
+    'metadata = GetVideoMetaData( videos )
+    'result = video_get_qualities(metadata[0])
+    
+    'youtube.FetchVideoList( "ExecBatchQueryV3", "Vidyas", false, { contentArg: ids, noPages: true} )
 
     ' Testing out a specific playlist
     'youtube.FetchVideoList("GetPlaylistItems", "Blah", false, {contentArg: "PL30BFB50685A0252B"})
