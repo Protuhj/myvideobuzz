@@ -1066,7 +1066,10 @@ Function VideoDetails_impl(theVideo As Object, breadcrumb As String, videos=inva
                 while ( VListOptionDialog( activeVideo ) = 1 )
                 end while
             else
-                'print "Unknown event: "; msg.GetType(); " msg: "; msg.GetMessage()
+                'print "Unknown event: "; msg.GetType(); " msg: "; msg.GetMessage() ; " index: " ; tostr(msg.GetIndex()) ; " data: " ; tostr(msg.GetData())
+                'if (msg.GetInfo() <> invalid) then
+                '    PrintAny(0, "More Info", msg.GetInfo() )
+                'end if
             end if
         else if (msg = invalid) then
             CheckForMCast()
@@ -1270,19 +1273,21 @@ Function getYouTubeDASHMPD( htmlString as String, video as Object, isSSL as Bool
             'printAA( pair )
             signature = ""
             if ( pair.s <> invalid AND pair.s <> "" ) then
-                if ( getJSUrl = true ) then
-                    functionMap = get_js_sm( video["ID"] )
-                    getJSUrl = false
-                else
-                    functionMap = getYoutube().funcmap
-                end if
-                if ( functionMap <> invalid ) then
-                    getYoutube().funcmap = functionMap
-                    newSig = decodesig( pair.s )
-                    if ( newSig <> invalid ) then
-                        signature = "/signature/" + newSig
-                    end if
-                end if
+                ' Temporarily just quit early since DASH doesn't work with the encoded URLs for some reason
+                return getYouTubeMP4Url( video, false, 0 )
+                'if ( getJSUrl = true ) then
+                '    functionMap = get_js_sm( video["ID"] )
+                '    getJSUrl = false
+                'else
+                '    functionMap = getYoutube().funcmap
+                'end if
+                'if ( functionMap <> invalid ) then
+                '    getYoutube().funcmap = functionMap
+                '    newSig = decodesig( pair.s )
+                '    if ( newSig <> invalid ) then
+                '        signature = "/signature/" + newSig
+                '    end if
+                'end if
             else
                 if (pair.sig <> "") then
                     signature = "/signature/" + pair.sig

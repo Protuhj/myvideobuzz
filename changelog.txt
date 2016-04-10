@@ -1,3 +1,7 @@
+Version 2.1 Build 002
+    - Temporarily disable DASH parsing on videos with encoded URLs.
+    - This means these videos will ALWAYS play in low quality.
+    - You should be able to change your video quality preference back to 'No Preference'.
 Version 2.1 Build 001
     - Initial parsing of DASH manifests for HD playback.
     - The channel will now attempt to play DASH first, if it fails, try playing the video again.
@@ -9,5 +13,3 @@ Version 2.1 Build 000
     - Current functionality seems stable.
 Version 2.0 Build 006
     - Fixes ANOTHER crash for YouTube music videos.
-Version 2.0 Build 005
-    - Fixes another crash for YouTube music videos.
