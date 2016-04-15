@@ -145,6 +145,9 @@ Sub ShowHomeScreen()
     ' Testing out a specific playlist
     'youtube.FetchVideoList("GetPlaylistItems", "Blah", false, {contentArg: "PL30BFB50685A0252B"})
 
+    ' Testing out a specific Twitch stream
+    ' newTwitchVideo( "totalbiscuit" )
+    
     ' Do main menu (required)
     uitkDoPosterMenu(menudata, screen, onselect)
 

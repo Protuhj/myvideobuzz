@@ -1235,7 +1235,7 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
         end if
     end if
     if (doDASH = false) then
-        getYouTubeOrGDriveURLs( htmlString, video, isSSL )
+        getYouTubeOrGDriveURLs( htmlString, video, isSSL, retryCount )
     end if
     return video["Streams"]
 End Function
@@ -1319,7 +1319,7 @@ Function getYouTubeDASHMPD( htmlString as String, video as Object, isSSL as Bool
     return video["Streams"]
 End Function
 
-Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as Boolean )
+Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as Boolean, retryCount as Integer )
     urlEncodedRegex = CreateObject("roRegex", "url_encoded_fmt_stream_map=([^(" + Chr(34) + "|&|$)]*)", "ig")
     commaRegex = CreateObject("roRegex", "%2C", "ig")
     ampersandRegex = CreateObject("roRegex", "%26", "ig")
