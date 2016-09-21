@@ -147,7 +147,7 @@ Sub ShowHomeScreen()
 
     ' Testing out a specific Twitch stream
     ' newTwitchVideo( "totalbiscuit" )
-    
+
     ' Do main menu (required)
     uitkDoPosterMenu(menudata, screen, onselect)
 

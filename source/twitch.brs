@@ -18,7 +18,7 @@ Sub ViewTwitch(youtube as Object, urlToQuery = "https://api.twitch.tv/kraken/gam
     title = "Twitch Games"
     screen = uitkPreShowPosterMenu( "arced-portrait", title )
     screen.showMessage( "Loading Twitch games..." )
-    rsp = QueryForJson( urlToQuery )
+    rsp = QueryForJson( urlToQuery + GetAddendum())
     
     if ( rsp.status = 200 ) then
         gameList = newTwitchGameList( rsp.json )
@@ -57,20 +57,21 @@ Sub ViewTwitchStreams(gameName as String, urlToQuery = invalid as dynamic )
     if ( urlToQuery = invalid ) then
         urlToQuery = "https://api.twitch.tv/kraken/streams?limit=50&game=" + URLEncode(gameName)
     end if
-    rsp = QueryForJson( urlToQuery )
+    rsp = QueryForJson( urlToQuery + GetAddendum())
     
     if ( rsp.status = 200 ) then
         streamList = NewTwitchStreamList( rsp.json )
 
         ' Now add the 'More results' button
         if ( rsp.json._links <> invalid AND rsp.json._links.next <> invalid ) then
-                streamList.Push({shortDescriptionLine1: "More Results", action: "next", pageURL: rsp.json._links.next, HDPosterUrl:"pkg:/images/icon_next_episode.jpg", SDPosterUrl:"pkg:/images/icon_next_episode.jpg"})
+            streamList.Push({shortDescriptionLine1: "More Results", action: "next", pageURL: URLDecode(rsp.json._links.next), HDPosterUrl:"pkg:/images/icon_next_episode.jpg", SDPosterUrl:"pkg:/images/icon_next_episode.jpg"})
         end if
         ' gameList.Unshift({shortDescriptionLine1: "Back", action: "prev", HDPosterUrl:"pkg:/images/icon_prev_episode.jpg", SDPosterUrl:"pkg:/images/icon_prev_episode.jpg"})
         onselect = [1, streamList, gameName,
         function(menu, gameName, set_idx)
             if (menu[set_idx]["action"] <> invalid) then
-                ViewTwitchStreams( menu[set_idx]["pageURL"] )
+                plusRegex = CreateObject( "roRegex", "\+", "i" )
+                ViewTwitchStreams(gameName, plusRegex.ReplaceAll( menu[set_idx]["pageURL"], "%20" ) )
             else
                 newTwitchVideo( menu[set_idx]["ID"] )
             end if
@@ -81,6 +82,10 @@ Sub ViewTwitchStreams(gameName as String, urlToQuery = invalid as dynamic )
         ShowErrorDialog( "Error querying Twitch (Code: " + tostr( rsp.status ) + ")", "Twitch Error" )
     end if
 End Sub
+
+Function GetAddendums() as Dynamic
+    return "k674du" + "51oxdhbjosmt" + "tm1tnfgr57zyd"
+End Function
 
 Function NewTwitchGameList(jsonObject As Object) As Object
     gameList = []
@@ -98,37 +103,40 @@ Function NewTwitchStreamList(jsonObject As Object) As Object
     return streamList
 End Function
 
-Function newTwitchVideo( channel as String ) As Object
-    result = QueryForJson( "http://api.twitch.tv/api/channels/" + channel + "/access_token?as3=t&allow_source=true" )
+Sub newTwitchVideo( channel as String )
+    result = QueryForJson( "http://api.twitch.tv/api/channels/" + channel + "/access_token?as3=t&allow_source=true" + GetAddendum() )
     'print "Sig: " ; result.json.sig
     'print "Token: " ; result.json.token
     'QueryForJson( "http://usher.twitch.tv/select/" + channel + ".json?nauthsig=" + result.json.sig +"&nauth=" + result.json.token )'+ "&allow_source=true" )
-    meta                   = {}
-    meta["Author"]                 = channel
-    meta["TitleSeason"]            = channel + " Live"
-    meta["Title"]                  = meta["Author"]
-    meta["Actors"]                 = meta["Author"]
-    meta["FullDescription"]        = "Live Stream"
-    meta["Description"]            = "Twitch Live Stream"
-    meta["Categories"]             = "Live Stream"
-    meta["ShortDescriptionLine1"]  = meta["TitleSeason"]
-    meta["ShortDescriptionLine2"]  = meta["Title"]
-    meta["SDPosterUrl"]            = getDefaultThumb( invalid, "" )
-    meta["HDPosterUrl"]            = getDefaultThumb( invalid, "" )
-    meta["Length"]                 = 0
-    meta["UserID"]                 = channel
-    meta["StreamFormat"]           = "hls"
-    meta["Live"]                   = true
-    meta["Streams"]                = []
-    meta["Source"]                 = getConstants().sTWITCH
-    ' Set the PlayStart sufficiently large so it starts at 'Live' position
-    meta["PlayStart"]              = 500000
-    meta["SwitchingStrategy"]      = "full-adaptation"
-    meta["Streams"].Push({url: "http://usher.twitch.tv/api/channel/hls/" + channel + ".m3u8?sig=" + result.json.sig +"&token=" + result.json.token + "&allow_source=true&allow_spectre=false", bitrate: 0, quality: false, contentid: -1})
-'    print "Twitch URL: " + meta["Streams"][0].url
-    DisplayVideo(meta)
-    return meta
-End Function
+    if ( result <> invalid AND result.status = 200 ) then
+        meta                   = {}
+        meta["Author"]                 = channel
+        meta["TitleSeason"]            = channel + " Live"
+        meta["Title"]                  = meta["Author"]
+        meta["Actors"]                 = meta["Author"]
+        meta["FullDescription"]        = "Live Stream"
+        meta["Description"]            = "Twitch Live Stream"
+        meta["Categories"]             = "Live Stream"
+        meta["ShortDescriptionLine1"]  = meta["TitleSeason"]
+        meta["ShortDescriptionLine2"]  = meta["Title"]
+        meta["SDPosterUrl"]            = getDefaultThumb( invalid, "" )
+        meta["HDPosterUrl"]            = getDefaultThumb( invalid, "" )
+        meta["Length"]                 = 0
+        meta["UserID"]                 = channel
+        meta["StreamFormat"]           = "hls"
+        meta["Live"]                   = true
+        meta["Streams"]                = []
+        meta["Source"]                 = getConstants().sTWITCH
+        ' Set the PlayStart sufficiently large so it starts at 'Live' position
+        meta["PlayStart"]              = 500000
+        meta["SwitchingStrategy"]      = "full-adaptation"
+        meta["Streams"].Push({url: "http://usher.twitch.tv/api/channel/hls/" + channel + ".m3u8?sig=" + result.json.sig +"&token=" + result.json.token + "&allow_source=true&allow_spectre=false", bitrate: 0, quality: false, contentid: -1})
+    '    print "Twitch URL: " + meta["Streams"][0].url
+        DisplayVideo(meta)
+    else
+        ShowErrorDialog( "Error querying Twitch (Code: " + tostr( result.status ) + ")", "Twitch Error" )
+    end if
+End Sub
 
 '******************************************************************************
 ' Creates a video roAssociativeArray, with the appropriate members needed to set Content Metadata and play a video with
@@ -201,3 +209,34 @@ End Sub
 Sub onplay_callback_Twitch(theVideo as Object)
     newTwitchVideo( theVideo["ID"] )
 End Sub
+
+Function GetAddendum() as Dynamic
+    retVal2 = ""
+    retVal = []
+    base = 99
+    retVal.Push( base - 61 )
+    retVal.Push( base )
+    base = base + 9
+    retVal.Push( base )
+    base = base - 3
+    retVal.Push( base )
+    base = base - 4
+    retVal.Push( base )
+    base = base + 9
+    retVal.Push( base )
+    base = base + 6
+    retVal.Push( base )
+    base = base - 21
+    retVal.Push( base )
+    base = base + 10 
+    retVal.Push( base )
+    base = base - 5
+    retVal.Push( base )
+    base = base - 39
+    retVal.Push( base )
+    for each item in retVal
+        retVal2 = retVal2 + Chr( item )
+    end for
+    return retval2 + GetAddendums()
+End Function
+

@@ -1,3 +1,5 @@
+Version 2.1 Build 004
+    - Fixed Twitch functionality
 Version 2.1 Build 003
     - Fix crash when attempting to play videos that have been removed (i.e. a reddit post)
     - Added parameter to Twitch parsing to allow for playing a channel when they are broadcasting a playlist.
@@ -11,6 +13,3 @@ Version 2.1 Build 001
     - If DASH fails, then it will fall back to SD playback.
     - If you force video quality to 'lowest' in the settings, the channel won't attempt to get the DASH stream.
     - Currently, music videos don't work with DASH, so if you don't want to be annoyed with having to play videos twice, just force quality to lowest.
-Version 2.1 Build 000
-    - Official release of 2.1.
-    - Current functionality seems stable.
