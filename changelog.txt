@@ -1,3 +1,5 @@
+Version 2.1 Build 005
+    - Added preference to hide the 'No Update Available' dialog when checking for new channel updates.
 Version 2.1 Build 004
     - Fixed Twitch functionality
 Version 2.1 Build 003
