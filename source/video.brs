@@ -59,6 +59,7 @@ Function InitYouTube() As Object
 
     ' Playlists
     this.BrowseUserPlaylists = BrowseUserPlaylists_impl
+    this.MyLiked = MyLiked_impl
 
     'Videos
     this.DisplayVideoListFromVideoList = DisplayVideoListFromVideoList_impl
@@ -591,6 +592,10 @@ End Function
 Function MyPlaylists_impl( pageToken = invalid as Dynamic ) as Dynamic
     return m.GetPlaylists( m.channelId, pageToken )
 End Function
+
+Sub MyLiked_impl(  ) as Dynamic
+    m.FetchVideoList( "GetPlaylistItems", "Your Liked Videos", false, {isPlaylist: false, itemFunc: "GetPlaylistItems", contentArg: "LL" + Mid(m.channelId, 3)} )
+End Sub
 
 Function GetPlaylists_impl( forChannelId as String, pageToken = invalid as Dynamic ) as Dynamic
     parms = []

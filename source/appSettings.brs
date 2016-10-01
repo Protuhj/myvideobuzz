@@ -107,6 +107,14 @@ Function LoadPreferences() as Object
         enumType: consts.eENABLED_DISABLED
         })
 
+    prefs.LikedEnabled = createPref( { prefName: "Enable Liked Videos",
+        prefDesc: "Does the Liked Videos icon appear on the home screen?",
+        prefDefault: consts.ENABLED_VALUE,
+        prefKey: consts.pLIKED_ENABLED,
+        prefType: "enum",
+        enumType: consts.eENABLED_DISABLED
+        })
+
     prefs.HideNoUpdateAvailMsg = createPref( { prefName: "Hide 'No Update Available' Message",
         prefDesc: "Should the 'No Update Available' message be hidden? ",
         prefDefault: consts.DISABLED_VALUE,
@@ -234,6 +242,12 @@ Sub EditGeneralSettings()
             HDPosterUrl:"pkg:/images/Settings.jpg",
             SDPosterUrl:"pkg:/images/Settings.jpg",
             prefData: getPrefs().getPrefData( getConstants().pLAN_VIDEOS_ENABLED )
+        },
+        {
+            Title: "Show Liked Videos on Home Screen",
+            HDPosterUrl:"pkg:/images/Settings.jpg",
+            SDPosterUrl:"pkg:/images/Settings.jpg",
+            prefData: getPrefs().getPrefData( getConstants().pLIKED_ENABLED )
         }
     ]
 
@@ -804,6 +818,7 @@ Function LoadConstants() as Object
     this.pAUTO_UPDATE           = "AutoUpdateCheck"
     this.pLAN_VIDEOS_ENABLED    = "LanVideosEnabled"
     this.pHIDE_NO_UPDATE_MSG    = "HideNoUpdateAvailMsg"
+    this.pLIKED_ENABLED         = "LikedEnabled"
 
     ' Source strings
     this.sYOUTUBE           = "YouTube"

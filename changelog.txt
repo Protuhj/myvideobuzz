@@ -1,3 +1,6 @@
+Version 2.1 Build 006
+    - Added link on main page to be able to view your 'Liked videos' playlist.
+    - Also added preference in the General Settings page to control whether or not this is shown on the homepage.
 Version 2.1 Build 005
     - Added preference to hide the 'No Update Available' dialog when checking for new channel updates.
 Version 2.1 Build 004
@@ -9,9 +12,3 @@ Version 2.1 Build 002
     - Temporarily disable DASH parsing on videos with encoded URLs.
     - This means these videos will ALWAYS play in low quality.
     - You should be able to change your video quality preference back to 'No Preference'.
-Version 2.1 Build 001
-    - Initial parsing of DASH manifests for HD playback.
-    - The channel will now attempt to play DASH first, if it fails, try playing the video again.
-    - If DASH fails, then it will fall back to SD playback.
-    - If you force video quality to 'lowest' in the settings, the channel won't attempt to get the DASH stream.
-    - Currently, music videos don't work with DASH, so if you don't want to be annoyed with having to play videos twice, just force quality to lowest.
