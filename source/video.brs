@@ -1591,7 +1591,7 @@ Function getGfycatMP4Url(video as Object, timeout = 0 as Integer, loginCookie = 
     video["Streams"].Clear()
 
     if ( video["ID"] <> invalid ) then
-        url = "http://gfycat.com/cajax/get/" + video["ID"]
+        url = "https://gfycat.com/cajax/get/" + video["ID"]
         jsonString = ""
         port = CreateObject( "roMessagePort" )
         ut = CreateObject( "roUrlTransfer" )
@@ -1599,6 +1599,10 @@ Function getGfycatMP4Url(video as Object, timeout = 0 as Integer, loginCookie = 
         ut.AddHeader( "User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:28.0) Gecko/20100101 Firefox/28.0" )
         ut.AddHeader( "Cookie", loginCookie )
         ut.SetUrl( url )
+        ut.SetCertificatesFile( "common:/certs/ca-bundle.crt" )
+        ' Wrap in an eval() block to catch any potential errors.
+        eval( "ut.SetCertificatesDepth( 3 )" )
+        ut.InitClientCertificates()
         if ( ut.AsyncGetToString() ) then
             while ( true )
                 msg = Wait( timeout, port )
@@ -1612,6 +1616,8 @@ Function getGfycatMP4Url(video as Object, timeout = 0 as Integer, loginCookie = 
                             video["Live"]          = false
                             video["StreamFormat"]  = "mp4"
                         end if
+                    else
+                        print( "Failed to get gfycat JSON with response: " + tostr( status ))
                     end if
                     exit while
                 else if ( type(msg) = "Invalid" ) then
@@ -1619,7 +1625,11 @@ Function getGfycatMP4Url(video as Object, timeout = 0 as Integer, loginCookie = 
                     exit while
                 end if
             end while
+        else
+            print( "getGfycatMP4Url AsyncGetToString() returned false" )
         end if
+    else
+        print( "getGfycatMP4Url video[ID] is invalid" )
     end if
     return video["Streams"]
 end function
