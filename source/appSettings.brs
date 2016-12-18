@@ -107,6 +107,22 @@ Function LoadPreferences() as Object
         enumType: consts.eENABLED_DISABLED
         })
 
+    prefs.LikedEnabled = createPref( { prefName: "Enable Liked Videos",
+        prefDesc: "Does the Liked Videos icon appear on the home screen?",
+        prefDefault: consts.ENABLED_VALUE,
+        prefKey: consts.pLIKED_ENABLED,
+        prefType: "enum",
+        enumType: consts.eENABLED_DISABLED
+        })
+
+    prefs.HideNoUpdateAvailMsg = createPref( { prefName: "Hide 'No Update Available' Message",
+        prefDesc: "Should the 'No Update Available' message be hidden? ",
+        prefDefault: consts.DISABLED_VALUE,
+        prefKey: consts.pHIDE_NO_UPDATE_MSG,
+        prefType: "enum",
+        enumType: consts.eENABLED_DISABLED
+        })
+
     prefs.getPrefData  = getPrefData_impl
     prefs.getPrefValue = getPrefValue_impl
     prefs.setPrefValue = setPrefValue_impl
@@ -216,10 +232,22 @@ Sub EditGeneralSettings()
             prefData: getPrefs().getPrefData( getConstants().pAUTO_UPDATE )
         },
         {
+            Title: "Hide No Update Available Message",
+            HDPosterUrl:"pkg:/images/Settings.jpg",
+            SDPosterUrl:"pkg:/images/Settings.jpg",
+            prefData: getPrefs().getPrefData( getConstants().pHIDE_NO_UPDATE_MSG )
+        },
+        {
             Title: "Show LAN Videos on Home Screen",
             HDPosterUrl:"pkg:/images/Settings.jpg",
             SDPosterUrl:"pkg:/images/Settings.jpg",
             prefData: getPrefs().getPrefData( getConstants().pLAN_VIDEOS_ENABLED )
+        },
+        {
+            Title: "Show Liked Videos on Home Screen",
+            HDPosterUrl:"pkg:/images/Settings.jpg",
+            SDPosterUrl:"pkg:/images/Settings.jpg",
+            prefData: getPrefs().getPrefData( getConstants().pLIKED_ENABLED )
         }
     ]
 
@@ -391,12 +419,14 @@ Sub CheckForNewRelease( autoCloseNoUpdateDlg as Boolean )
             end if
         else
             dialog.Close()
-            if ( not( autoCloseNoUpdateDlg ) ) then
-                ShowDialog1Button( "Info", "No New Releases Available", "Ok" )
-            else
-                tmpDlg = ShowDialogNoButton( "No New Releases Available", "" )
-                sleep( 3000 )
-                tmpDlg.Close()
+            if ( getPrefs().getPrefValue( getConstants().pHIDE_NO_UPDATE_MSG ) = getConstants().DISABLED_VALUE ) then
+                if ( not( autoCloseNoUpdateDlg ) ) then
+                    ShowDialog1Button( "Info", "No New Releases Available", "Ok" )
+                else
+                    tmpDlg = ShowDialogNoButton( "No New Releases Available", "" )
+                    sleep( 3000 )
+                    tmpDlg.Close()
+                end if
             end if
         end if
     else
@@ -446,12 +476,14 @@ Sub CheckForNewMaster( autoCloseNoUpdateDlg as Boolean )
             end if
         else
             dialog.Close()
-            if ( not( autoCloseNoUpdateDlg ) ) then
-                ShowDialog1Button( "Info", "No Update Available", "Ok" )
-            else
-                tmpDlg = ShowDialogNoButton( "No Update Available", "" )
-                sleep( 3000 )
-                tmpDlg.Close()
+            if ( getPrefs().getPrefValue( getConstants().pHIDE_NO_UPDATE_MSG ) = getConstants().DISABLED_VALUE ) then
+                if ( not( autoCloseNoUpdateDlg ) ) then
+                    ShowDialog1Button( "Info", "No Update Available", "Ok" )
+                else
+                    tmpDlg = ShowDialogNoButton( "No Update Available", "" )
+                    sleep( 3000 )
+                    tmpDlg.Close()
+                end if
             end if
         end if
     else
@@ -761,7 +793,7 @@ End Function
 Function LoadConstants() as Object
     this = {}
     this.VERSION_STR       = "2.1.0"
-    this.USER_AGENT        = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:28.0) Gecko/20100101 Firefox/28.0"
+    this.USER_AGENT        = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:45.0) Gecko/20100101 Firefox/45.0"
     this.NO_PREFERENCE     = 0
     this.FORCE_HIGHEST     = 1
     this.FORCE_LOWEST      = 2
@@ -785,6 +817,8 @@ Function LoadConstants() as Object
     this.pROKU_PASSWORD         = "RokuPassword"
     this.pAUTO_UPDATE           = "AutoUpdateCheck"
     this.pLAN_VIDEOS_ENABLED    = "LanVideosEnabled"
+    this.pHIDE_NO_UPDATE_MSG    = "HideNoUpdateAvailMsg"
+    this.pLIKED_ENABLED         = "LikedEnabled"
 
     ' Source strings
     this.sYOUTUBE           = "YouTube"

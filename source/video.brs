@@ -59,6 +59,7 @@ Function InitYouTube() As Object
 
     ' Playlists
     this.BrowseUserPlaylists = BrowseUserPlaylists_impl
+    this.MyLiked = MyLiked_impl
 
     'Videos
     this.DisplayVideoListFromVideoList = DisplayVideoListFromVideoList_impl
@@ -592,6 +593,10 @@ Function MyPlaylists_impl( pageToken = invalid as Dynamic ) as Dynamic
     return m.GetPlaylists( m.channelId, pageToken )
 End Function
 
+Sub MyLiked_impl(  ) as Dynamic
+    m.FetchVideoList( "GetPlaylistItems", "Your Liked Videos", false, {isPlaylist: false, itemFunc: "GetPlaylistItems", contentArg: "LL" + Mid(m.channelId, 3)} )
+End Sub
+
 Function GetPlaylists_impl( forChannelId as String, pageToken = invalid as Dynamic ) as Dynamic
     parms = []
     parms.push( { name: "part", value: "snippet" } )
@@ -1066,7 +1071,10 @@ Function VideoDetails_impl(theVideo As Object, breadcrumb As String, videos=inva
                 while ( VListOptionDialog( activeVideo ) = 1 )
                 end while
             else
-                'print "Unknown event: "; msg.GetType(); " msg: "; msg.GetMessage()
+                'print "Unknown event: "; msg.GetType(); " msg: "; msg.GetMessage() ; " index: " ; tostr(msg.GetIndex()) ; " data: " ; tostr(msg.GetData())
+                'if (msg.GetInfo() <> invalid) then
+                '    PrintAny(0, "More Info", msg.GetInfo() )
+                'end if
             end if
         else if (msg = invalid) then
             CheckForMCast()
@@ -1144,8 +1152,13 @@ Function DisplayVideo(content As Object)
                 video.Close()
                 exit while
             else if (msg.isRequestFailed()) then
-                print "play failed: " ; msg.GetMessage()
-                ShowErrorDialog( "Video playback failed", "Unknown Playback Error" )
+                print "play failed: " ; msg.GetMessage() ; + " Code: " + toStr( msg.GetIndex() )
+                if (msg.GetIndex() = -5 AND content["StreamFormat"] <> invalid AND content["StreamFormat"] = "dash") then
+                    content["FailedDash"] = true
+                    ShowErrorDialog( "DASH playback failed, try again.", "DASH Playback Error")
+                else
+                    ShowErrorDialog( "Video playback failed (Code: " + toStr( msg.GetIndex() ) + ")", "Unknown Playback Error")
+                end if
             else if (msg.isPlaybackPosition()) then
                 content["PlayStart"] = msg.GetIndex()
                 if ( yt.sleep_timer <> -100 AND msg.GetIndex() <> 0 ) then
@@ -1185,17 +1198,27 @@ Function DisplayVideo(content As Object)
     return ret
 End Function
 
-Function getYouTubeMP4Url(video as Object, retryCount = 0 as Integer, timeout = 0 as Integer, loginCookie = "" as String) as Object
+Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount = 0 as Integer, timeout = 0 as Integer, loginCookie = "" as String) as Object
     video["Streams"].Clear()
     isSSL = false
+    prefs = getPrefs()
+    if (video["FailedDash"] <> invalid) then
+        print "Failed dash was not invalid, playing mp4"
+        doDASH = false
+    else if (doDASH = true AND prefs.getPrefValue( getConstants().pVIDEO_QUALITY ) = getConstants().FORCE_LOWEST) then
+        print "Not getting DASH due to preference being set to lowest quality."
+        doDASH = false
+    end if
     if (Left(LCase(video["ID"]), 4) = "http") then
         url = video["ID"]
         if ( Left( LCase( url ), 5) = "https" ) then
             isSSL = true
         end if
-    else if (retryCount = 0)
+    else if (doDASH = true) then
+        url = "http://www.youtube.com/get_video_info?el=info&video_id=" + video["ID"]
+    else if (retryCount = 0) then
         url = "http://www.youtube.com/get_video_info?el=detailpage&video_id=" + video["ID"]
-    else if (retryCount = 1)
+    else if (retryCount = 1) then
         url = "http://www.youtube.com/get_video_info?video_id=" + video["ID"] + "&eurl=https://youtube.googleapis.com/v/" + video["ID"] + "&sts=158"
     end if
     constants = getConstants()
@@ -1207,6 +1230,101 @@ Function getYouTubeMP4Url(video as Object, retryCount = 0 as Integer, timeout = 
     headers["Cookie"] = loginCookie
     htmlString = http.getToStringWithTimeout(10, headers)
 
+    if (doDASH = true) then
+        retVal = getYouTubeDASHMPD( htmlString, video, isSSL )
+
+        ' If the get DASH MPD URL fails, then fall back to the old way.
+        if (retVal.Count() = 0) then
+            print "Failed to find DASH MPD URL, attempting fall-back."
+            doDASH = false
+        end if
+    end if
+    if (doDASH = false) then
+        getYouTubeOrGDriveURLs( htmlString, video, isSSL, retryCount )
+    end if
+    return video["Streams"]
+End Function
+
+Function getYouTubeDASHMPD( htmlString as String, video as Object, isSSL as Boolean )
+    dashmpdRegex = CreateObject("roRegex", "dashmpd=([^(" + Chr(34) + "|&|$)]*)", "ig")
+    commaRegex = CreateObject("roRegex", "%2C", "ig")
+    slashRegex = CreateObject("roRegex", "%2F", "ig")
+    equalsRegex = CreateObject("roRegex", "%3D", "ig")
+    replaceSRegex = CreateObject("roRegex", "/s/([a-fA-F0-9\.]+)", "ig")
+
+    htmlString = firstValid( htmlString, "" )
+    dashMPDUrl = dashmpdRegex.Match( htmlString )
+
+    constants = getConstants()
+    prefs = getPrefs()
+    getJSUrl = true
+    if (dashMPDUrl.Count() > 1) then
+        if (not(strTrim(dashMPDUrl[1]) = "")) then
+            hasHD = false
+            fullHD = false
+            print "Dash MPD URL: " ; dashMPDUrl[1]
+            pair = {itag: "", url: "", sig: ""}
+            storeS = false
+            slashSplit = slashRegex.Split( dashMPDUrl[1] )
+            for each slashItem in slashSplit
+                'print("slashItem: " + ampersandItem)
+                if ( slashItem = "s" ) then
+                    storeS = true
+                else if ( storeS = true ) then
+                    pair["s"] = slashItem
+                    storeS = false
+                end if
+            end for
+            'printAA( pair )
+            signature = ""
+            if ( pair.s <> invalid AND pair.s <> "" ) then
+                ' Temporarily just quit early since DASH doesn't work with the encoded URLs for some reason
+                return getYouTubeMP4Url( video, false, 0 )
+                'if ( getJSUrl = true ) then
+                '    functionMap = get_js_sm( video["ID"] )
+                '    getJSUrl = false
+                'else
+                '    functionMap = getYoutube().funcmap
+                'end if
+                'if ( functionMap <> invalid ) then
+                '    getYoutube().funcmap = functionMap
+                '    newSig = decodesig( pair.s )
+                '    if ( newSig <> invalid ) then
+                '        signature = "/signature/" + newSig
+                '    end if
+                'end if
+            else
+                if (pair.sig <> "") then
+                    signature = "/signature/" + pair.sig
+                else
+                    signature = ""
+                end if
+            end if
+            urlDecoded = URLDecode(URLDecode(dashMPDUrl[1]))
+            'print ( "Pre urlDecoded: " + urlDecoded )
+            if (signature <> "") then
+                urlDecoded = replaceSRegex.ReplaceAll( urlDecoded, signature )
+            end if
+            'print ( "urlDecoded: " + urlDecoded )
+
+            streamData = {url: urlDecoded, bitrate: 2300, quality: true, contentid: "dash" }
+            if ( streamData <> invalid ) then
+                video["Streams"].Push( streamData )
+            end if
+            if (video["Streams"].Count() > 0) then
+                video["Live"]          = false
+                video["StreamFormat"]  = "dash"
+                video["HDBranded"] = hasHD
+                video["IsHD"] = hasHD
+                video["FullHD"] = fullHD
+                video["SSL"] = isSSL
+            end if
+        end if
+    end if
+    return video["Streams"]
+End Function
+
+Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as Boolean, retryCount as Integer )
     urlEncodedRegex = CreateObject("roRegex", "url_encoded_fmt_stream_map=([^(" + Chr(34) + "|&|$)]*)", "ig")
     commaRegex = CreateObject("roRegex", "%2C", "ig")
     ampersandRegex = CreateObject("roRegex", "%26", "ig")
@@ -1221,6 +1339,7 @@ Function getYouTubeMP4Url(video as Object, retryCount = 0 as Integer, timeout = 
     htmlString = firstValid( htmlString, "" )
     urlEncodedFmtStreamMap = urlEncodedRegex.Match( htmlString )
 
+    constants = getConstants()
     prefs = getPrefs()
     videoQualityPref = prefs.getPrefValue( constants.pVIDEO_QUALITY )
     getJSUrl = true
@@ -1283,10 +1402,10 @@ Function getYouTubeMP4Url(video as Object, retryCount = 0 as Integer, timeout = 
                             if ( itag% = 18 ) then
                                 ' 18 is MP4 270p/360p H.264 at .5 Mbps video bitrate
                                 video["Streams"].Push( {url: urlDecoded, bitrate: 512, quality: false, contentid: pair.itag} )
-                            else if ( itag% = 22 ) then
-                                ' 22 is MP4 720p H.264 at 2-2.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
-                                video["Streams"].Push( {url: urlDecoded, bitrate: 2969, quality: true, contentid: pair.itag} )
-                                hasHD = true
+                            'else if ( itag% = 22 ) then
+                            '    ' 22 is MP4 720p H.264 at 2-2.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
+                            '    video["Streams"].Push( {url: urlDecoded, bitrate: 2969, quality: true, contentid: pair.itag} )
+                            '    hasHD = true
                             else if ( itag% = 37 ) then
                                 ' 37 is MP4 1080p H.264 at 3-5.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
                                 video["Streams"].Push( {url: urlDecoded, bitrate: 6041, quality: true, contentid: pair.itag } )
@@ -1298,11 +1417,11 @@ Function getYouTubeMP4Url(video as Object, retryCount = 0 as Integer, timeout = 
                                 ' 18 is MP4 270p/360p H.264 at .5 Mbps video bitrate
                                 streamData = {url: urlDecoded, bitrate: 512, quality: false, contentid: pair.itag}
                                 topQuality% = itag%
-                            else if ( itag% = 22 ) then
-                                ' 22 is MP4 720p H.264 at 2-2.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
-                                streamData = {url: urlDecoded, bitrate: 2969, quality: true, contentid: pair.itag}
-                                hasHD = true
-                                topQuality% = itag%
+                            'else if ( itag% = 22 ) then
+                            '    ' 22 is MP4 720p H.264 at 2-2.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
+                            '    streamData = {url: urlDecoded, bitrate: 2969, quality: true, contentid: pair.itag}
+                            '    hasHD = true
+                            '    topQuality% = itag%
                             else if ( itag% = 37 ) then
                                 ' 37 is MP4 1080p H.264 at 3-5.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
                                 streamData = {url: urlDecoded, bitrate: 6041, quality: true, contentid: pair.itag }
@@ -1352,7 +1471,7 @@ Function getYouTubeMP4Url(video as Object, retryCount = 0 as Integer, timeout = 
     else
         if ( retryCount < 1 ) then
             print ( "Nothing in urlEncodedFmtStreamMap, retrying with different URL." )
-            return getYouTubeMP4Url(video, 1)
+            return getYouTubeMP4Url(video, false, 1)
         else
             print ( "Retries exceeded, giving up!" )
         end if
@@ -1472,7 +1591,7 @@ Function getGfycatMP4Url(video as Object, timeout = 0 as Integer, loginCookie = 
     video["Streams"].Clear()
 
     if ( video["ID"] <> invalid ) then
-        url = "http://gfycat.com/cajax/get/" + video["ID"]
+        url = "https://gfycat.com/cajax/get/" + video["ID"]
         jsonString = ""
         port = CreateObject( "roMessagePort" )
         ut = CreateObject( "roUrlTransfer" )
@@ -1480,6 +1599,10 @@ Function getGfycatMP4Url(video as Object, timeout = 0 as Integer, loginCookie = 
         ut.AddHeader( "User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:28.0) Gecko/20100101 Firefox/28.0" )
         ut.AddHeader( "Cookie", loginCookie )
         ut.SetUrl( url )
+        ut.SetCertificatesFile( "common:/certs/ca-bundle.crt" )
+        ' Wrap in an eval() block to catch any potential errors.
+        eval( "ut.SetCertificatesDepth( 3 )" )
+        ut.InitClientCertificates()
         if ( ut.AsyncGetToString() ) then
             while ( true )
                 msg = Wait( timeout, port )
@@ -1493,6 +1616,8 @@ Function getGfycatMP4Url(video as Object, timeout = 0 as Integer, loginCookie = 
                             video["Live"]          = false
                             video["StreamFormat"]  = "mp4"
                         end if
+                    else
+                        print( "Failed to get gfycat JSON with response: " + tostr( status ))
                     end if
                     exit while
                 else if ( type(msg) = "Invalid" ) then
@@ -1500,7 +1625,11 @@ Function getGfycatMP4Url(video as Object, timeout = 0 as Integer, loginCookie = 
                     exit while
                 end if
             end while
+        else
+            print( "getGfycatMP4Url AsyncGetToString() returned false" )
         end if
+    else
+        print( "getGfycatMP4Url video[ID] is invalid" )
     end if
     return video["Streams"]
 end function

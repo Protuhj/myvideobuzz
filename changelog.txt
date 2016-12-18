@@ -1,9 +1,12 @@
-Version 2.1 Build 000
-    - Official release of 2.1.
-    - Current functionality seems stable.
-Version 2.0 Build 006
-    - Fixes ANOTHER crash for YouTube music videos.
-Version 2.0 Build 005
-    - Fixes another crash for YouTube music videos.
-Version 2.0 Build 004
-    - Fixes crash when trying to load subscriptions that are private.
+Version 2.1 Build 007
+    - Fixed Gfycat links on reddit
+Version 2.1 Build 006
+    - Added link on main page to be able to view your 'Liked videos' playlist.
+    - Also added preference in the General Settings page to control whether or not this is shown on the homepage.
+Version 2.1 Build 005
+    - Added preference to hide the 'No Update Available' dialog when checking for new channel updates.
+Version 2.1 Build 004
+    - Fixed Twitch functionality
+Version 2.1 Build 003
+    - Fix crash when attempting to play videos that have been removed (i.e. a reddit post)
+    - Added parameter to Twitch parsing to allow for playing a channel when they are broadcasting a playlist.
