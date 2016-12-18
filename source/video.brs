@@ -785,12 +785,17 @@ Function newVideoListFromJSON_impl(jsonList As Object) As Object
     videolist = CreateObject("roList")
     for each record in jsonList
         video = m.newVideoFromJSON( record )
-        videolist.Push( video )
+        if video <> invalid then
+            videolist.Push( video )
+        end if
     next
     return videolist
 End Function
 
 Function newVideoFromJSON_impl(jsonVideoItem as Object) As Object
+    if jsonVideoItem.Lookup("contentDetails") = invalid then 
+        return invalid
+    end if
     video                   = CreateObject("roAssociativeArray")
     video["ID"]             = jsonVideoItem.id
     video["Author"]         = jsonVideoItem.snippet.channelTitle
