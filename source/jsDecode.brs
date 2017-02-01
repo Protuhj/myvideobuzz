@@ -53,7 +53,10 @@ Function get_js_sm(video_id) as Dynamic
         'sm = _extract_smap(g.UEFSM, stream_info, False)
         'asm = _extract_smap(g.AF, stream_info, False)
         js_url = slashRegex.ReplaceAll(m[1], "/")
-        if ( Left( js_url, 2 ) = "//" ) then
+        
+        if ( js_url.InStr( 0, "youtube.com" ) = -1 ) then
+            js_url = "https://www.youtube.com" + js_url
+        else if ( Left( js_url, 2 ) = "//") then
             js_url = "https:" + js_url
         end if
         funcs = getYoutube().funcmap
@@ -114,6 +117,14 @@ Function getMainfuncFromJS(jsBody as String) as Dynamic
         funcname = matches[1]
         print( "Found main function: " + funcname )
         funcBody = extractFunctionFromJS( funcname, jsBody )
+    else
+        fpattern = CreateObject( "roRegex", "([\" + Quote() + "\'])signature\1\s*,\s*([a-zA-Z0-9$]+)\(", "" )
+        matches = fpattern.Match( jsBody )
+        if ( matches.Count() > 1 ) then
+            funcname = matches[2]
+            print( "Found main function: " + funcname )
+            funcBody = extractFunctionFromJS( funcname, jsBody )
+        end if
     end if
     return funcBody
 End Function
