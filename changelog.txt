@@ -1,3 +1,7 @@
+Version 2.1 Build 009
+    - Fixed Issue #129 - Failure to handle when statistics object in JSON doesn't exist.
+Version 2.1 Build 008
+    - Fixed Issue #127 - Javascript regex and URL is broken.
 Version 2.1 Build 007
     - Fixed Gfycat links on reddit
 Version 2.1 Build 006
@@ -7,6 +11,3 @@ Version 2.1 Build 005
     - Added preference to hide the 'No Update Available' dialog when checking for new channel updates.
 Version 2.1 Build 004
     - Fixed Twitch functionality
-Version 2.1 Build 003
-    - Fix crash when attempting to play videos that have been removed (i.e. a reddit post)
-    - Added parameter to Twitch parsing to allow for playing a channel when they are broadcasting a playlist.

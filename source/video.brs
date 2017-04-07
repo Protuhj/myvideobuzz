@@ -801,9 +801,13 @@ Function newVideoFromJSON_impl(jsonVideoItem as Object) As Object
     video["Length"]         = get_human_readable_as_length( jsonVideoItem.contentDetails.duration )
     video["UploadDate"]     = GetUploadDate_impl( jsonVideoItem.snippet.publishedAt )
     video["DateSeconds"]    = GetUploadSeconds_impl( jsonVideoItem.snippet.publishedAt )
-    video["Category"]       = jsonVideoItem.statistics.viewCount + " Views"
-    video["Rating"]         = 0
-    if (jsonVideoItem.statistics.likeCount <> invalid AND jsonVideoItem.statistics.dislikeCount <> invalid AND jsonVideoItem.statistics.likeCount.Toint() > 0) then
+    if (jsonVideoItem.statistics <> invalid AND jsonVideoItem.statistics.viewCount <> invalid) then
+        video["Category"]       = jsonVideoItem.statistics.viewCount + " Views"
+    else
+        video["Category"]       = "Unknown Views"
+    end if
+    video["Rating"]         = invalid
+    if (jsonVideoItem.statistics <> invalid AND jsonVideoItem.statistics.likeCount <> invalid AND jsonVideoItem.statistics.dislikeCount <> invalid AND jsonVideoItem.statistics.likeCount.Toint() > 0) then
         video["Rating"] = Int(jsonVideoItem.statistics.likeCount.ToFloat() / (jsonVideoItem.statistics.likeCount.ToFloat() + jsonVideoItem.statistics.dislikeCount.ToFloat()) * 100)
     end if
     video["Thumb"]          = firstValid( jsonVideoItem.snippet.thumbnails.medium.url, jsonVideoItem.snippet.thumbnails.default.url, "" )
