@@ -25,7 +25,11 @@ Sub SearchYouTube_impl()
                 keyword = msg.GetMessage()
                 parms["q"] = keyword
                 prompt = "Searching YouTube for " + Quote() + keyword + Quote()
-                if (m.searchLengthFilter <> "") then
+                if (m.searchLive <> "") then
+                    ' Live search overrides the length setting
+                    parms["eventType"] = "live"
+                    prompt = prompt + Chr(10) + "Live?: Yes"
+                else if (m.searchLengthFilter <> "") then
                     parms["videoDuration"] = LCase(m.searchLengthFilter)
                     prompt = prompt + Chr(10) + "Length: " + m.searchLengthFilter
                 end if
@@ -157,15 +161,20 @@ Function SearchOptionDialog() as Integer
     updateSearchDialogText(dialog)
     dialog.EnableBackButton(true)
     dialog.SetMenuTopLeft( true )
-    dialog.addButton(1, "Change Length Filter")
-    dialog.addButton(2, "Change Sort Setting")
-    dialog.addButton(3, "Done")
+    lengthIndex = 1
+    sortIndex = 2
+    liveIndex = 3
+    doneIndex = 4
+    dialog.addButton(lengthIndex, "Change Length Filter")
+    dialog.addButton(sortIndex, "Change Sort Setting")
+    dialog.addButton(liveIndex, "Live?")
+    dialog.addButton(doneIndex, "Done")
     dialog.Show()
     while true
         dlgMsg = wait(2000, dialog.GetMessagePort())
         if (type(dlgMsg) = "roMessageDialogEvent") then
             if (dlgMsg.isButtonPressed()) then
-                if (dlgMsg.GetIndex() = 1) then
+                if (dlgMsg.GetIndex() = lengthIndex) then
                     dialog.Close()
                     ret = SearchFilterClicked()
                     if (ret <> "ignore") then
@@ -178,7 +187,7 @@ Function SearchOptionDialog() as Integer
                         updateSearchDialogText(dialog, true)
                     end if
                     return 1 ' Re-open the options
-                else if (dlgMsg.GetIndex() = 2) then
+                else if (dlgMsg.GetIndex() = sortIndex) then
                     dialog.Close()
                     ret = SearchSortClicked()
                     if (ret <> "ignore") then
@@ -191,7 +200,20 @@ Function SearchOptionDialog() as Integer
                         updateSearchDialogText(dialog, true)
                     end if
                     return 1 ' Re-open the options
-                else if (dlgMsg.GetIndex() = 3) then
+                else if (dlgMsg.GetIndex() = liveIndex) then
+                    dialog.Close()
+                    ret = LiveClicked()
+                    if (ret <> "ignore") then
+                        m.youtube.searchLive = ret
+                        if (ret <> "") then
+                            RegWrite("live", ret, "Search")
+                        else
+                            RegDelete("live", "Search")
+                        end if
+                        updateSearchDialogText(dialog, true)
+                    end if
+                    return 1 ' Re-open the options
+                else if (dlgMsg.GetIndex() = doneIndex) then
                     dialog.Close()
                     exit while
                 end if
@@ -216,13 +238,18 @@ End Function
 Sub updateSearchDialogText(dialog as Object, isUpdate = false as Boolean)
     searchLengthText = "None"
     searchSortText = "None"
+    searchLiveText = "No"
     if (m.youtube.searchLengthFilter <> "") then
         searchLengthText = m.youtube.searchLengthFilter
     end if
     if (m.youtube.searchSort <> "") then
         searchSortText = GetSortText(m.youtube.searchSort)
     end if
-    dialogText = "Length: " + searchLengthText + chr(10) + "Sort: " + searchSortText
+    if (m.youtube.searchLive <> "") then
+        searchLiveText = "Yes"
+        searchLengthText = searchLengthText + "(ignored)"
+    end if
+    dialogText = "Length: " + searchLengthText + chr(10) + "Sort: " + searchSortText + chr(10) + "Live?: " + searchLiveText
     if (isUpdate = true) then
         dialog.UpdateText(dialogText)
     else
@@ -343,5 +370,41 @@ Function GetSortText(internalValue as String) as String
     else if (m.youtube.searchSort = "title") then
         retVal = "Title"
     end if
+    return retVal
+End Function
+
+Function LiveClicked() as String
+    dialog = CreateObject("roMessageDialog")
+    port = CreateObject("roMessagePort")
+    dialog.SetMessagePort(port)
+    dialog.SetTitle("Search for live events only?")
+    dialog.SetText("This will cause the length option to be ignored.")
+    dialog.EnableBackButton(true)
+    dialog.SetMenuTopLeft( true )
+    dialog.addButton(1, "No")
+    dialog.addButton(2, "Yes")
+    if (m.youtube.searchLive = "Yes") then
+        dialog.SetFocusedMenuItem(2)
+    end if
+    dialog.Show()
+    retVal = "ignore"
+    while true
+        dlgMsg = wait(2000, dialog.GetMessagePort())
+        if (type(dlgMsg) = "roMessageDialogEvent") then
+            if (dlgMsg.isButtonPressed()) then
+                if (dlgMsg.GetIndex() = 1) then
+                    retVal = ""
+                else if (dlgMsg.GetIndex() = 2) then
+                    retVal = "Yes"
+                end if
+                exit while
+            else if (dlgMsg.isScreenClosed()) then
+                exit while
+            end if
+        else if (dlgMsg = invalid) then
+            CheckForMCast()
+        end if
+    end while
+    dialog.Close()
     return retVal
 End Function

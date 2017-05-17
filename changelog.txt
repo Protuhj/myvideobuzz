@@ -1,3 +1,6 @@
+Version 2.1 Build 011
+    - Fixes Issue #131 - Adds ability to search for live streams.
+    - Hit the '*' button to get to the search options dialog when in the Search window.
 Version 2.1 Build 010
     - Fixed Issue #118 - Fixed videos with encoded signatures playing with DASH.
     - This would be probably noticed in music videos.
@@ -8,6 +11,3 @@ Version 2.1 Build 008
     - Fixed Issue #127 - Javascript regex and URL is broken.
 Version 2.1 Build 007
     - Fixed Gfycat links on reddit
-Version 2.1 Build 006
-    - Added link on main page to be able to view your 'Liked videos' playlist.
-    - Also added preference in the General Settings page to control whether or not this is shown on the homepage.

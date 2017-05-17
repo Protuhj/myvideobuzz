@@ -44,6 +44,21 @@ Function InitYouTube() As Object
         RegDelete("sort", "Search")
         RegWrite( "SearchSortVersion", this.searchSortHistory, "Settings" )
     end if
+    
+    this.searchLive = ""
+    tmpLive = RegRead("live", "Search")
+    if (tmpLive <> invalid) then
+        this.searchLive = tmpLive
+    end if
+    ' Version of the searchLive value.
+    this.searchLiveHistory = "1"
+    searchLiveVer = RegRead( "SearchLiveVersion", "Settings" )
+    if ( searchLiveVer = invalid OR searchLiveVer <> this.searchLiveHistory ) then
+        print( "Search Live version mismatch (clearing setting), found: " + tostr( searchLiveVer ) + ", expected: " + this.searchLiveHistory )
+        this.searchLive = ""
+        RegDelete("live", "Search")
+        RegWrite( "SearchLiveVersion", this.searchLiveHistory, "Settings" )
+    end if
 
     this.CurrentPageTitle = ""
 
