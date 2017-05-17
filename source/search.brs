@@ -10,7 +10,6 @@ Sub SearchYouTube_impl()
     screen.SetSearchTerms(history.GetAsArray())
     screen.SetBreadcrumbText("", "Hit the * button for search options")
     screen.Show()
-    parms = {}
     while (true)
         msg = wait(2000, port)
         if (type(msg) = "roSearchScreenEvent") then
@@ -22,6 +21,7 @@ Sub SearchYouTube_impl()
                 screen.SetClearButtonEnabled(false)
                 screen.SetSearchTerms(GenerateSearchSuggestions(msg.GetMessage()))
             else if (msg.isFullResult()) then
+                parms = {}
                 keyword = msg.GetMessage()
                 parms["q"] = keyword
                 prompt = "Searching YouTube for " + Quote() + keyword + Quote()
@@ -269,6 +269,7 @@ Function SearchFilterClicked() as String
     dialog.addButton(3, "Medium (>=4 and <=20 minutes)")
     dialog.addButton(4, "Long (>20 minutes)")
     if (m.youtube.searchLengthFilter = "Short") then
+        ' Documentation is wrong, this isn't the button ID, but rather the 0-based index.
         dialog.SetFocusedMenuItem(1)
     else if (m.youtube.searchLengthFilter = "Medium") then
         dialog.SetFocusedMenuItem(2)
@@ -316,6 +317,7 @@ Function SearchSortClicked() as String
     dialog.addButton(5, "Relevance (default)")
     dialog.addButton(6, "Title")
     if (m.youtube.searchSort = "date") then
+        ' Documentation is wrong, this isn't the button ID, but rather the 0-based index.
         dialog.SetFocusedMenuItem(1)
     else if (m.youtube.searchSort = "viewCount") then
         dialog.SetFocusedMenuItem(2)
@@ -384,7 +386,8 @@ Function LiveClicked() as String
     dialog.addButton(1, "No")
     dialog.addButton(2, "Yes")
     if (m.youtube.searchLive = "Yes") then
-        dialog.SetFocusedMenuItem(2)
+        ' Documentation is wrong, this isn't the button ID, but rather the 0-based index.
+        dialog.SetFocusedMenuItem(1)
     end if
     dialog.Show()
     retVal = "ignore"

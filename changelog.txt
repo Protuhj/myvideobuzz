@@ -1,3 +1,5 @@
+Version 2.1 Build 012
+    - Fixes bug with live search feature.
 Version 2.1 Build 011
     - Fixes Issue #131 - Adds ability to search for live streams.
     - Hit the '*' button to get to the search options dialog when in the Search window.
