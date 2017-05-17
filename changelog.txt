@@ -1,3 +1,7 @@
+Version 2.1 Build 010
+    - Fixed Issue #118 - Fixed videos with encoded signatures playing with DASH.
+    - This would be probably noticed in music videos.
+    - This means that these videos will now play in HD (720p+)
 Version 2.1 Build 009
     - Fixed Issue #129 - Failure to handle when statistics object in JSON doesn't exist.
 Version 2.1 Build 008
@@ -7,7 +11,3 @@ Version 2.1 Build 007
 Version 2.1 Build 006
     - Added link on main page to be able to view your 'Liked videos' playlist.
     - Also added preference in the General Settings page to control whether or not this is shown on the homepage.
-Version 2.1 Build 005
-    - Added preference to hide the 'No Update Available' dialog when checking for new channel updates.
-Version 2.1 Build 004
-    - Fixed Twitch functionality

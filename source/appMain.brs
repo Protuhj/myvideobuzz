@@ -26,11 +26,12 @@ Function getPrefs() as Object
     return m.prefs
 End Function
 
-Sub RunUserInterface()
+' use Main function to be able to use the external control Roku provides later
+Function Main(params as Dynamic) as void
     'initialize theme attributes like titles, logos and overhang color
     initTheme()
     ShowHomeScreen()
-End Sub
+End Function
 
 
 Sub ShowHomeScreen()
@@ -127,15 +128,17 @@ Sub ShowHomeScreen()
     ' Each of these is age-restricted.
     'ids = []
     'https://www.youtube.com/watch?v=PRZjnGUGXBI
+    'ids.push("5_yOGBzBTdc") ' Age restricted, fails? 16 May
     'ids.push("PRZjnGUGXBI") ' VEVO turd
     'ids.push("1EROmqidZQc")
     'ids.push("kP8O-MOqmcw")
     'ids.push("nje6dcArZrI")
     'ids.push("UMyoCr2MnpM")
-    'ids.push("5_yOGBzBTdc")
-    ' ids.push("_ovdm2yX4MA") ' AVICII VEVO
+    'ids.push("_ovdm2yX4MA") ' AVICII VEVO
     'ids.push("4cNDmPlCTiw") ' HD video that failed
-    'ids.push("baMyINaV4ms") ' DASH video with signature that STILL fails
+    'ids.push("baMyINaV4ms") ' DASH video with signature
+    'ids.push("l-PRY_c7x7U") ' DASH video with signature
+    'ids.push("y60wDzZt8yg")  ' Live Stream
 
     'res = youtube.ExecBatchQueryV3( ids )
     'videos = youtube.newVideoListFromJSON( res.items )

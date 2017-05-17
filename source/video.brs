@@ -5,6 +5,7 @@ Function InitYouTube() As Object
     this.channelId = RegRead("ytChannelId", invalid)
     this.funcmap = invalid
     this.JSUrl = ""
+    this.STSVal = firstValid( RegRead("YT_STS_VAL", invalid), "17295" )
     this.home_screen = invalid
     this.link_prefix = "https://www.google.com/device"
     this.v3Base = "https://www.googleapis.com/youtube/v3/"
@@ -1157,7 +1158,7 @@ Function DisplayVideo(content As Object)
                 exit while
             else if (msg.isRequestFailed()) then
                 print "play failed: " ; msg.GetMessage() ; + " Code: " + toStr( msg.GetIndex() )
-                if (msg.GetIndex() = -5 AND content["StreamFormat"] <> invalid AND content["StreamFormat"] = "dash") then
+                if ((msg.GetIndex() = -5 OR msg.GetIndex() = -1) AND content["StreamFormat"] <> invalid AND content["StreamFormat"] = "dash") then
                     content["FailedDash"] = true
                     ShowErrorDialog( "DASH playback failed, try again.", "DASH Playback Error")
                 else
@@ -1212,6 +1213,9 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
     else if (doDASH = true AND prefs.getPrefValue( getConstants().pVIDEO_QUALITY ) = getConstants().FORCE_LOWEST) then
         print "Not getting DASH due to preference being set to lowest quality."
         doDASH = false
+    else if (video["Length"] = 0) then
+        print "Not using DASH for live stream"
+        doDASH = false
     end if
     if (Left(LCase(video["ID"]), 4) = "http") then
         url = video["ID"]
@@ -1219,11 +1223,20 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
             isSSL = true
         end if
     else if (doDASH = true) then
-        url = "http://www.youtube.com/get_video_info?el=info&video_id=" + video["ID"]
+        ' el = adunit, detailpage, editpage, embedded, previewpage, profilepage,
+        ' No dashmpd with protected: leanback
+        ' Includes dashmpd, but doesn't work with protected: unplugged
+        'url = "http://www.youtube.com/get_video_info?el=info&video_id=" + video["ID"]
+        if (getYoutube().STSVal <> invalid) then
+            url = "http://www.youtube.com/get_video_info?el=info&sts=" + getYoutube().STSVal + "&video_id=" + video["ID"]
+        else
+            url = "http://www.youtube.com/get_video_info?el=info&video_id=" + video["ID"]
+        end if
+        'url = "http://www.youtube.com/get_video_info?el=info&video_id=" + video["ID"]
     else if (retryCount = 0) then
         url = "http://www.youtube.com/get_video_info?el=detailpage&video_id=" + video["ID"]
     else if (retryCount = 1) then
-        url = "http://www.youtube.com/get_video_info?video_id=" + video["ID"] + "&eurl=https://youtube.googleapis.com/v/" + video["ID"] + "&sts=158"
+        url = "http://www.youtube.com/get_video_info?video_id=" + video["ID"] + "&eurl=https://youtube.googleapis.com/v/" + video["ID"] + "&sts=17295"
     end if
     constants = getConstants()
     port = CreateObject("roMessagePort")
@@ -1282,21 +1295,21 @@ Function getYouTubeDASHMPD( htmlString as String, video as Object, isSSL as Bool
             'printAA( pair )
             signature = ""
             if ( pair.s <> invalid AND pair.s <> "" ) then
-                ' Temporarily just quit early since DASH doesn't work with the encoded URLs for some reason
-                return getYouTubeMP4Url( video, false, 0 )
-                'if ( getJSUrl = true ) then
-                '    functionMap = get_js_sm( video["ID"] )
-                '    getJSUrl = false
-                'else
-                '    functionMap = getYoutube().funcmap
-                'end if
-                'if ( functionMap <> invalid ) then
-                '    getYoutube().funcmap = functionMap
-                '    newSig = decodesig( pair.s )
-                '    if ( newSig <> invalid ) then
-                '        signature = "/signature/" + newSig
-                '    end if
-                'end if
+                ' Use this to just quit early since DASH doesn't work with the encoded URLs for some reason
+                'return getYouTubeMP4Url( video, false, 0 )
+                if ( getJSUrl = true ) then
+                    functionMap = get_js_sm( video["ID"] )
+                    getJSUrl = false
+                else
+                    functionMap = getYoutube().funcmap
+                end if
+                if ( functionMap <> invalid ) then
+                    getYoutube().funcmap = functionMap
+                    newSig = decodesig( pair.s )
+                    if ( newSig <> invalid ) then
+                        signature = "/signature/" + newSig
+                    end if
+                end if
             else
                 if (pair.sig <> "") then
                     signature = "/signature/" + pair.sig

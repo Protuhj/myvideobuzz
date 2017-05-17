@@ -36,6 +36,7 @@ Function get_js_sm(video_id) as Dynamic
     'Returns streammap (list of dicts), js url (str) and funcs (dict)
     '
     jsplayer = CreateObject( "roRegex", Quote() + "assets" + Quote() + "\s*:\s*\{.*?" + Quote() + "js" + Quote() + "\s*:\s*" + Quote() + "(.*?)" + Quote(), "" )
+    sts_val = CreateObject( "roRegex", Quote() + "sts" + Quote() + "\s*:\s*(\d+)", "" )
     slashRegex = CreateObject( "roRegex", "\\\/", "" )
     watch_url = "http://www.youtube.com/watch?v=" + video_id
     http = NewHttp( watch_url )
@@ -43,8 +44,18 @@ Function get_js_sm(video_id) as Dynamic
     headers["User-Agent"] = getConstants().USER_AGENT
     'print("Fetching watch page")
     watchinfo = http.getToStringWithTimeout(10, headers)
-    'watchinfo = fetch_decode(watch_url) ' # unicode
     'print(watchinfo)
+    ' Correct STS value is required for videos with encoded signatures
+    stsMatch = sts_val.Match( watchinfo )
+    if ( stsMatch.Count() > 1 ) then
+        print "Found sts value: " + stsMatch[1]
+        if ( getYoutube().STSVal <> stsMatch[1] ) then
+            ' Don't write to the registry too often.
+            ' Store the STS Value for use next time, in case it changes.
+            RegWrite("YT_STS_VAL", stsMatch[1])
+        end if
+        getYoutube().STSVal = stsMatch[1]
+    end if
     m = jsplayer.Match( watchinfo )
     if ( m.Count() > 1 ) then
         'print ("Found JS player: " + slashRegex.ReplaceAll(m[1], "/") )
