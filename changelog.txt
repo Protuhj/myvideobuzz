@@ -1,3 +1,5 @@
+Version 2.1 Build 013
+    - Adds support for external control via the Roku External Control API.
 Version 2.1 Build 012
     - Fixes bug with live search feature.
 Version 2.1 Build 011
@@ -11,5 +13,3 @@ Version 2.1 Build 009
     - Fixed Issue #129 - Failure to handle when statistics object in JSON doesn't exist.
 Version 2.1 Build 008
     - Fixed Issue #127 - Javascript regex and URL is broken.
-Version 2.1 Build 007
-    - Fixed Gfycat links on reddit

@@ -28,20 +28,46 @@ End Function
 
 ' use Main function to be able to use the external control Roku provides later
 Function Main(params as Dynamic) as void
-    'initialize theme attributes like titles, logos and overhang color
+    Init()
     initTheme()
-    ShowHomeScreen()
+    ShowHomeScreen(params)
 End Function
 
+Sub processParamsForECNPush(params = invalid as Dynamic)
+    'initialize theme attributes like titles, logos and overhang color
+    if (params <> invalid AND params.mediaType <> invalid AND LCase( params.mediaType ) = "youtube" ) then
+        if ( params.contentID <> invalid ) then
+            youtube = getYoutube()
+            print ("Received YouTube push for video: " + params.contentID)
+            ids = []
+            ids.push( params.contentID.Trim() )
+            res = youtube.ExecBatchQueryV3( ids )
+            videos = youtube.newVideoListFromJSON( res.items )
+            metadata = GetVideoMetaData( videos )
+            result = video_get_qualities(metadata[0])
+            if (result = 0) then
+                DisplayVideo(metadata[0])
+            else
+                ShowErrorDialog("Failed to play YouTube video: " + params.contentID, "External Control")
+            end if
+        else
+            ShowErrorDialog("Failed to play YouTube video, missing contentID (YT video ID parameter)", "External Control")
+        end if
+    end if
+End Sub
 
-Sub ShowHomeScreen()
+Sub ShowHomeScreen(params = invalid as Dynamic)
     ' Pop up start of UI for some instant feedback while we load the icon data
-    Init()
     youtube = getYoutube()
     screen = uitkPreShowPosterMenu("flat-category", youtube.userName)
     if (screen = invalid) then
         print "Failed to create the home screen!"
         return
+    end if
+
+    if ( params <> invalid ) then
+        ' Handle ECN push, if necessary
+        processParamsForECNPush( params )
     end if
 
     if (youtube.home_screen <> invalid) then
@@ -144,7 +170,7 @@ Sub ShowHomeScreen()
     'videos = youtube.newVideoListFromJSON( res.items )
     'metadata = GetVideoMetaData( videos )
     'result = video_get_qualities(metadata[0])
-    
+
     'youtube.FetchVideoList( "ExecBatchQueryV3", "Vidyas", false, { contentArg: ids, noPages: true} )
 
     ' Testing out a specific playlist
