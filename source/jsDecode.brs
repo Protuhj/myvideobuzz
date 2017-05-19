@@ -145,10 +145,12 @@ Function getOtherFuncs(primary_func as Object, jsText as String) as Object
     'print("scanning javascript for secondary functions.")
     body = primary_func.body
     body = body.Tokenize(";")
-    '# standard function call; X=F(A,B,C...)
+    '# standard function call: X=F(A,B,C...)
     funcCall = CreateObject( "roRegex", "(?:[$\w+])=([$\w]+)\(((?:\w+,?)+)\)$", "" )
-    '# dot notation function call; X=O.F(A,B,C..)
+    '# dot notation function call: X=O.F(A,B,C..)
     dotCall = CreateObject( "roRegex", "(?:[$\w+]=)?([$\w]+)\.([$\w]+)\(((?:\w+,?)+)\)$", "" )
+    '# dot notation function call: X=O["name"](A,B,C..)
+    arrayCall = CreateObject( "roRegex", "([$\w]+)\[(\" + Quote() + "[$\w]+\" + Quote() + ")\]\(((?:\w+,?)+)\)$", "" )
     functions = {}
     for each part in body
         '# is this a function?
@@ -165,6 +167,16 @@ Function getOtherFuncs(primary_func as Object, jsText as String) as Object
         else if ( dotCall.IsMatch( part ) ) then
             match = dotcall.match(part)
             name = match[1] + "." + match[2]
+            '# don't treat X=A.slice(B) as X=O.F(B)
+            if ( match[2] = "slice" OR match[2] = "splice" ) then
+                ' Do nothing
+            else if ( functions[name] = invalid ) then
+                functions[name] = extractDictFuncFromJS( name, jsText )
+            end if
+        else if ( arrayCall.IsMatch( part ) ) then
+            match = arrayCall.match(part)
+            name = match[1] + "." + match[2]
+            'print "Found array call: " + name
             '# don't treat X=A.slice(B) as X=O.F(B)
             if ( match[2] = "slice" OR match[2] = "splice" ) then
                 ' Do nothing
@@ -284,6 +296,18 @@ Function solve(f, returns=True as Boolean) as Dynamic
             newfunc = getFuncFromCall(f, funcname, args.Tokenize(",") )
             f["args"][lhs] = solve(newfunc)
         else if ( name = "func_call_dict_noret" ) then
+            dic = m[1]
+            key = m[2]
+            args = m[3]
+            funcname = dic + "." + key
+            newfunc = getFuncFromCall(f, funcname, args.Tokenize(",") )
+            changed_args = solve(newfunc, returns=False)
+            for each arg in f["args"]
+                if ( changed_args[arg] <> invalid ) then
+                    f["args"][arg] = changed_args[arg]
+                end if
+            next
+        else if ( name = "func_call_array" ) then
             dic = m[1]
             key = m[2]
             args = m[3]

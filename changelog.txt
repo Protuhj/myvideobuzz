@@ -1,3 +1,5 @@
+Version 2.1 Build 014
+    - Fixes Issue #133 - Failed playback on videos with encoded signatures.
 Version 2.1 Build 013
     - Adds support for external control via the Roku External Control API.
 Version 2.1 Build 012
@@ -11,5 +13,3 @@ Version 2.1 Build 010
     - This means that these videos will now play in HD (720p+)
 Version 2.1 Build 009
     - Fixed Issue #129 - Failure to handle when statistics object in JSON doesn't exist.
-Version 2.1 Build 008
-    - Fixed Issue #127 - Javascript regex and URL is broken.

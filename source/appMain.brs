@@ -30,6 +30,9 @@ End Function
 Function Main(params as Dynamic) as void
     Init()
     initTheme()
+    ' Debug a video:
+    'params.mediatype = "youtube"
+    'params.contentid = "1RO74THAS-8"
     ShowHomeScreen(params)
 End Function
 

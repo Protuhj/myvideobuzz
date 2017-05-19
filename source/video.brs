@@ -164,6 +164,7 @@ Function InitYouTube() As Object
     patterns = {}
     ' patterns.split_or_join = CreateObject( "roRegex", "(\w+)=\1\.(?:split|join)\(" + Quote() + "" + Quote() + ")$", "" )
     patterns.func_call = CreateObject( "roRegex", "(\w+)=([$\w]+)\(((?:\w+,?)+)\)$", "")
+    patterns.func_call_array = CreateObject( "roRegex", "([$\w]+)\[(\" + Quote() + "[$\w]+\" + Quote() + ")\]\(((?:\w+,?)+)\)$", "")
     patterns.split_or_join = CreateObject( "roRegex", "(\w+)=\1\.(?:split|join)\(" + Quote() + Quote() + "\)$", "")
     patterns.x1 =  CreateObject( "roRegex", "var\s(\w+)=(\w+)\[(\w+)\]$", "" )
     patterns.x2 = CreateObject( "roRegex", "(\w+)\[(\w+)\]=(\w+)\[(\w+)\%(\w+)\.length\]$", "" )
