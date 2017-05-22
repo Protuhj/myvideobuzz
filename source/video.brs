@@ -1219,7 +1219,7 @@ Function DisplayVideo(content As Object)
     return ret
 End Function
 
-Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount = 0 as Integer, timeout = 0 as Integer, loginCookie = "" as String) as Object
+Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount = 0 as Integer ) as Object
     video["Streams"].Clear()
     isSSL = false
     prefs = getPrefs()
@@ -1232,6 +1232,10 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
     else if (video["Length"] = 0) then
         print "Not using DASH for live stream"
         doDASH = false
+    else if (doDASH = true AND retryCount > 1) then
+        doDASH = false
+        retryCount = 0
+        print "Not using DASH due to too many retries"
     end if
     if (Left(LCase(video["ID"]), 4) = "http") then
         url = video["ID"]
@@ -1243,16 +1247,20 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
         ' No dashmpd with protected: leanback
         ' Includes dashmpd, but doesn't work with protected: unplugged
         'url = "http://www.youtube.com/get_video_info?el=info&video_id=" + video["ID"]
+        url = "http://www.youtube.com/get_video_info?el=info&video_id=" + video["ID"]
         if (getYoutube().STSVal <> invalid) then
-            url = "http://www.youtube.com/get_video_info?el=info&sts=" + getYoutube().STSVal + "&video_id=" + video["ID"]
-        else
-            url = "http://www.youtube.com/get_video_info?el=info&video_id=" + video["ID"]
+            url = url + "&sts=" + getYoutube().STSVal
         end if
-        'url = "http://www.youtube.com/get_video_info?el=info&video_id=" + video["ID"]
     else if (retryCount = 0) then
         url = "http://www.youtube.com/get_video_info?el=detailpage&video_id=" + video["ID"]
+        if (getYoutube().STSVal <> invalid) then
+            url = url + "&sts=" + getYoutube().STSVal
+        end if
     else if (retryCount = 1) then
-        url = "http://www.youtube.com/get_video_info?video_id=" + video["ID"] + "&eurl=https://youtube.googleapis.com/v/" + video["ID"] + "&sts=17295"
+        url = "http://www.youtube.com/get_video_info?video_id=" + video["ID"] + "&eurl=https://youtube.googleapis.com/v/" + video["ID"]
+        if (getYoutube().STSVal <> invalid) then
+            url = url + "&sts=" + getYoutube().STSVal
+        end if
     end if
     constants = getConstants()
     port = CreateObject("roMessagePort")
@@ -1260,20 +1268,26 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
     http = NewHttp( url )
     headers = { }
     headers["User-Agent"] = constants.USER_AGENT
-    headers["Cookie"] = loginCookie
+    headers["Cookie"] = ""
     htmlString = http.getToStringWithTimeout(10, headers)
 
     if (doDASH = true) then
         retVal = getYouTubeDASHMPD( htmlString, video, isSSL )
 
         ' If the get DASH MPD URL fails, then fall back to the old way.
-        if (retVal.Count() = 0) then
+        if ( retVal = invalid ) then
+            ' invalid means the get_js_sm function reported that the STS value changed, retry.
+            getYouTubeMP4Url( video, doDASH, retryCount + 1 )
+        else if ( retVal.Count() = 0 ) then
             print "Failed to find DASH MPD URL, attempting fall-back."
             doDASH = false
         end if
     end if
     if (doDASH = false) then
-        getYouTubeOrGDriveURLs( htmlString, video, isSSL, retryCount )
+        if ( getYouTubeOrGDriveURLs( htmlString, video, isSSL, retryCount ) = invalid ) then
+            ' invalid means the get_js_sm function reported that the STS value changed, retry.
+            getYouTubeMP4Url( video, doDASH, retryCount )
+        end if
     end if
     return video["Streams"]
 End Function
@@ -1291,6 +1305,10 @@ Function getYouTubeDASHMPD( htmlString as String, video as Object, isSSL as Bool
     constants = getConstants()
     prefs = getPrefs()
     getJSUrl = true
+    didFail = false
+    ' When true, tells the calling function to retry, since the STS value has changed
+    stsValChanged = false
+    pleaseWaitDlg = invalid
     if (dashMPDUrl.Count() > 1) then
         if (not(strTrim(dashMPDUrl[1]) = "")) then
             hasHD = false
@@ -1314,16 +1332,44 @@ Function getYouTubeDASHMPD( htmlString as String, video as Object, isSSL as Bool
                 ' Use this to just quit early since DASH doesn't work with the encoded URLs for some reason
                 'return getYouTubeMP4Url( video, false, 0 )
                 if ( getJSUrl = true ) then
-                    functionMap = get_js_sm( video["ID"] )
+                    pleaseWaitDlg = ShowPleaseWait( "Decoding signature", "Downloading webpage..." )
+                    functionMap = get_js_sm( video["ID"], pleaseWaitDlg )
                     getJSUrl = false
                 else
                     functionMap = getYoutube().funcmap
                 end if
-                if ( functionMap <> invalid ) then
+                if ( functionMap <> invalid AND functionMap["stsValChanged"] = invalid ) then
                     getYoutube().funcmap = functionMap
+                    if (pleaseWaitDlg <> invalid) then
+                        pleaseWaitDlg.UpdateText( "Decoding signature..." )
+                    end if
                     newSig = decodesig( pair.s )
                     if ( newSig <> invalid ) then
                         signature = "/signature/" + newSig
+                        if (pleaseWaitDlg <> invalid) then
+                            pleaseWaitDlg.UpdateText( "Done!" )
+                        end if
+                    else
+                        didFail = true
+                        print "Failed to decode signature!"
+                        if (pleaseWaitDlg <> invalid) then
+                            pleaseWaitDlg.UpdateText( "Failed to decode signature!" )
+                        end if
+                    end if
+                else if ( functionMap <> invalid AND functionMap["stsValChanged"] <> invalid ) then
+                    functionMap["stsValChanged"] = invalid
+                    getYoutube().funcmap = functionMap
+                    didFail = true
+                    print "STS value has changed"
+                    stsValChanged = true
+                    if (pleaseWaitDlg <> invalid) then
+                        pleaseWaitDlg.UpdateText( "STS value has changed, going to retry." )
+                    end if
+                else ' functionMap = invalid
+                    didFail = true
+                    print "Failed to parse javascript!"
+                    if (pleaseWaitDlg <> invalid) then
+                        pleaseWaitDlg.UpdateText( "Failed to parse javascript!" )
                     end if
                 end if
             else
@@ -1333,28 +1379,37 @@ Function getYouTubeDASHMPD( htmlString as String, video as Object, isSSL as Bool
                     signature = ""
                 end if
             end if
-            urlDecoded = URLDecode(URLDecode(dashMPDUrl[1]))
-            'print ( "Pre urlDecoded: " + urlDecoded )
-            if (signature <> "") then
-                urlDecoded = replaceSRegex.ReplaceAll( urlDecoded, signature )
-            end if
-            'print ( "urlDecoded: " + urlDecoded )
+            if ( didFail = false ) then
+                urlDecoded = URLDecode(URLDecode(dashMPDUrl[1]))
+                'print ( "Pre urlDecoded: " + urlDecoded )
+                if (signature <> "") then
+                    urlDecoded = replaceSRegex.ReplaceAll( urlDecoded, signature )
+                end if
+                'print ( "urlDecoded: " + urlDecoded )
 
-            streamData = {url: urlDecoded, bitrate: 2300, quality: true, contentid: "dash" }
-            if ( streamData <> invalid ) then
-                video["Streams"].Push( streamData )
-            end if
-            if (video["Streams"].Count() > 0) then
-                video["Live"]          = false
-                video["StreamFormat"]  = "dash"
-                video["HDBranded"] = hasHD
-                video["IsHD"] = hasHD
-                video["FullHD"] = fullHD
-                video["SSL"] = isSSL
+                streamData = {url: urlDecoded, bitrate: 2300, quality: true, contentid: "dash" }
+                if ( streamData <> invalid ) then
+                    video["Streams"].Push( streamData )
+                end if
+                if (video["Streams"].Count() > 0) then
+                    video["Live"]          = false
+                    video["StreamFormat"]  = "dash"
+                    video["HDBranded"] = hasHD
+                    video["IsHD"] = hasHD
+                    video["FullHD"] = fullHD
+                    video["SSL"] = isSSL
+                end if
             end if
         end if
     end if
-    return video["Streams"]
+    if (pleaseWaitDlg <> invalid) then
+        pleaseWaitDlg.Close()
+    end if
+    if ( stsValChanged = false ) then
+        return video["Streams"]
+    else
+        return invalid
+    end if
 End Function
 
 Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as Boolean, retryCount as Integer )
@@ -1376,6 +1431,10 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
     prefs = getPrefs()
     videoQualityPref = prefs.getPrefValue( constants.pVIDEO_QUALITY )
     getJSUrl = true
+    didFail = false
+    ' When true, tells the calling function to retry, since the STS value has changed
+    stsValChanged = false
+    pleaseWaitDlg = invalid
     if (urlEncodedFmtStreamMap.Count() > 1) then
         if (not(strTrim(urlEncodedFmtStreamMap[1]) = "")) then
             commaSplit = commaRegex.Split( urlEncodedFmtStreamMap[1] )
@@ -1402,16 +1461,44 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                     signature = ""
                     if ( pair.s <> invalid AND pair.s <> "" ) then
                         if ( getJSUrl = true ) then
-                            functionMap = get_js_sm( video["ID"] )
+                            pleaseWaitDlg = ShowPleaseWait( "Decoding signature", "Downloading webpage..." )
+                            functionMap = get_js_sm( video["ID"], pleaseWaitDlg )
                             getJSUrl = false
                         else
                             functionMap = getYoutube().funcmap
                         end if
-                        if ( functionMap <> invalid ) then
+                        if ( functionMap <> invalid AND functionMap["stsValChanged"] = invalid ) then
                             getYoutube().funcmap = functionMap
+                            if (pleaseWaitDlg <> invalid) then
+                                pleaseWaitDlg.UpdateText( "Decoding signature..." )
+                            end if
                             newSig = decodesig( pair.s )
                             if ( newSig <> invalid ) then
                                 signature = "&signature=" + newSig
+                                if (pleaseWaitDlg <> invalid) then
+                                    pleaseWaitDlg.UpdateText( "Done!" )
+                                end if
+                            else
+                                didFail = true
+                                print "Failed to decode signature!"
+                                if (pleaseWaitDlg <> invalid) then
+                                    pleaseWaitDlg.UpdateText( "Failed to decode signature!" )
+                                end if
+                            end if
+                        else if ( functionMap <> invalid AND functionMap["stsValChanged"] <> invalid ) then
+                            functionMap["stsValChanged"] = invalid
+                            getYoutube().funcmap = functionMap
+                            didFail = true
+                            print "STS value has changed"
+                            stsValChanged = true
+                            if (pleaseWaitDlg <> invalid) then
+                                pleaseWaitDlg.UpdateText( "STS value has changed, going to retry." )
+                            end if
+                        else ' functionMap = invalid
+                            didFail = true
+                            print "Failed to parse javascript!"
+                            if (pleaseWaitDlg <> invalid) then
+                                pleaseWaitDlg.UpdateText( "Failed to parse javascript!" )
                             end if
                         end if
                     else
@@ -1421,63 +1508,67 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                             signature = ""
                         end if
                     end if
-                    urlDecoded = URLDecode(URLDecode(pair.url + signature))
-                    itag% = strtoi( pair.itag )
-                    if ( itag% <> invalid AND ( itag% = 18 OR itag% = 22 OR itag% = 37 ) ) then
-                        if ( Left( LCase( urlDecoded ), 5) = "https" ) then
-                            isSSL = true
-                        else if ( isSSL <> true )
-                            isSSL = false
-                        end if
-                        'printAA( pair )
-                        ' Determined from here: http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
-                        if ( videoQualityPref = constants.NO_PREFERENCE ) then
-                            if ( itag% = 18 ) then
-                                ' 18 is MP4 270p/360p H.264 at .5 Mbps video bitrate
-                                video["Streams"].Push( {url: urlDecoded, bitrate: 512, quality: false, contentid: pair.itag} )
-                            'else if ( itag% = 22 ) then
-                            '    ' 22 is MP4 720p H.264 at 2-2.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
-                            '    video["Streams"].Push( {url: urlDecoded, bitrate: 2969, quality: true, contentid: pair.itag} )
-                            '    hasHD = true
-                            else if ( itag% = 37 ) then
-                                ' 37 is MP4 1080p H.264 at 3-5.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
-                                video["Streams"].Push( {url: urlDecoded, bitrate: 6041, quality: true, contentid: pair.itag } )
-                                hasHD = true
-                                fullHD = true
+                    if ( didFail = false ) then
+                        urlDecoded = URLDecode(URLDecode(pair.url + signature))
+                        itag% = strtoi( pair.itag )
+                        if ( itag% <> invalid AND ( itag% = 18 OR itag% = 22 OR itag% = 37 ) ) then
+                            if ( Left( LCase( urlDecoded ), 5) = "https" ) then
+                                isSSL = true
+                            else if ( isSSL <> true )
+                                isSSL = false
                             end if
-                        else if ( ( videoQualityPref = constants.FORCE_HIGHEST AND itag% > topQuality% ) OR ( videoQualityPref = constants.FORCE_LOWEST AND itag% < topQuality% ) ) then
-                            if ( itag% = 18 ) then
-                                ' 18 is MP4 270p/360p H.264 at .5 Mbps video bitrate
-                                streamData = {url: urlDecoded, bitrate: 512, quality: false, contentid: pair.itag}
-                                topQuality% = itag%
-                            'else if ( itag% = 22 ) then
-                            '    ' 22 is MP4 720p H.264 at 2-2.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
-                            '    streamData = {url: urlDecoded, bitrate: 2969, quality: true, contentid: pair.itag}
-                            '    hasHD = true
-                            '    topQuality% = itag%
-                            else if ( itag% = 37 ) then
-                                ' 37 is MP4 1080p H.264 at 3-5.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
-                                streamData = {url: urlDecoded, bitrate: 6041, quality: true, contentid: pair.itag }
-                                hasHD = true
-                                fullHD = true
-                                topQuality% = itag%
+                            'printAA( pair )
+                            ' Determined from here: http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
+                            if ( videoQualityPref = constants.NO_PREFERENCE ) then
+                                if ( itag% = 18 ) then
+                                    ' 18 is MP4 270p/360p H.264 at .5 Mbps video bitrate
+                                    video["Streams"].Push( {url: urlDecoded, bitrate: 512, quality: false, contentid: pair.itag} )
+                                'else if ( itag% = 22 ) then
+                                '    ' 22 is MP4 720p H.264 at 2-2.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
+                                '    video["Streams"].Push( {url: urlDecoded, bitrate: 2969, quality: true, contentid: pair.itag} )
+                                '    hasHD = true
+                                else if ( itag% = 37 ) then
+                                    ' 37 is MP4 1080p H.264 at 3-5.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
+                                    video["Streams"].Push( {url: urlDecoded, bitrate: 6041, quality: true, contentid: pair.itag } )
+                                    hasHD = true
+                                    fullHD = true
+                                end if
+                            else if ( ( videoQualityPref = constants.FORCE_HIGHEST AND itag% > topQuality% ) OR ( videoQualityPref = constants.FORCE_LOWEST AND itag% < topQuality% ) ) then
+                                if ( itag% = 18 ) then
+                                    ' 18 is MP4 270p/360p H.264 at .5 Mbps video bitrate
+                                    streamData = {url: urlDecoded, bitrate: 512, quality: false, contentid: pair.itag}
+                                    topQuality% = itag%
+                                'else if ( itag% = 22 ) then
+                                '    ' 22 is MP4 720p H.264 at 2-2.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
+                                '    streamData = {url: urlDecoded, bitrate: 2969, quality: true, contentid: pair.itag}
+                                '    hasHD = true
+                                '    topQuality% = itag%
+                                else if ( itag% = 37 ) then
+                                    ' 37 is MP4 1080p H.264 at 3-5.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
+                                    streamData = {url: urlDecoded, bitrate: 6041, quality: true, contentid: pair.itag }
+                                    hasHD = true
+                                    fullHD = true
+                                    topQuality% = itag%
+                                end if
                             end if
+                        'else
+                        '    print "Tried to parse invalid itag value: " ; tostr ( itag% )
                         end if
-                    'else
-                    '    print "Tried to parse invalid itag value: " ; tostr ( itag% )
                     end if
                 end if
             end for
-            if ( streamData <> invalid ) then
-                video["Streams"].Push( streamData )
-            end if
-            if (video["Streams"].Count() > 0) then
-                video["Live"]          = false
-                video["StreamFormat"]  = "mp4"
-                video["HDBranded"] = hasHD
-                video["IsHD"] = hasHD
-                video["FullHD"] = fullHD
-                video["SSL"] = isSSL
+            if ( didFail = false ) then
+                if ( streamData <> invalid ) then
+                    video["Streams"].Push( streamData )
+                end if
+                if (video["Streams"].Count() > 0) then
+                    video["Live"]          = false
+                    video["StreamFormat"]  = "mp4"
+                    video["HDBranded"] = hasHD
+                    video["IsHD"] = hasHD
+                    video["FullHD"] = fullHD
+                    video["SSL"] = isSSL
+                end if
             end if
         else
             hlsUrl = CreateObject("roRegex", "hlsvp=([^(" + Chr(34) + "|&|$)]*)", "").Match(htmlString)
@@ -1504,12 +1595,22 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
     else
         if ( retryCount < 1 ) then
             print ( "Nothing in urlEncodedFmtStreamMap, retrying with different URL." )
+            if (pleaseWaitDlg <> invalid) then
+                pleaseWaitDlg.Close()
+            end if
             return getYouTubeMP4Url(video, false, 1)
         else
             print ( "Retries exceeded, giving up!" )
         end if
     end if
-    return video["Streams"]
+    if (pleaseWaitDlg <> invalid) then
+        pleaseWaitDlg.Close()
+    end if
+    if ( stsValChanged = false ) then
+        return video["Streams"]
+    else
+        return invalid
+    end if
 End Function
 
 Sub getGDriveFolderContents(video as Object, timeout = 0 as Integer, loginCookie = "" as String)

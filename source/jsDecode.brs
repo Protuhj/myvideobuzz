@@ -28,7 +28,7 @@ Function decodesig(sig as String) as Dynamic
     end if
 End Function
 
-Function get_js_sm(video_id) as Dynamic
+Function get_js_sm(video_id as String, waitDialog = invalid as Dynamic) as Dynamic
     ' Fetch watchinfo page and extract stream map and js funcs if not known.
     'This function is needed by videos with encrypted signatures.
     'If the js url referred to in the watchv page is not a key in Pafy.funcmap,
@@ -47,14 +47,17 @@ Function get_js_sm(video_id) as Dynamic
     'print(watchinfo)
     ' Correct STS value is required for videos with encoded signatures
     stsMatch = sts_val.Match( watchinfo )
+    stsValChanged = false
     if ( stsMatch.Count() > 1 ) then
         print "Found sts value: " + stsMatch[1]
         if ( getYoutube().STSVal <> stsMatch[1] ) then
             ' Don't write to the registry too often.
             ' Store the STS Value for use next time, in case it changes.
             RegWrite("YT_STS_VAL", stsMatch[1])
+            print "STS value mismatch old: " + getYoutube().STSVal + " new: " + stsMatch[1] + " - forcing retry"
+            getYoutube().STSVal = stsMatch[1]
+            stsValChanged = true
         end if
-        getYoutube().STSVal = stsMatch[1]
     end if
     m = jsplayer.Match( watchinfo )
     if ( m.Count() > 1 ) then
@@ -72,10 +75,16 @@ Function get_js_sm(video_id) as Dynamic
         end if
         funcs = getYoutube().funcmap
         if ( funcs = invalid OR (getYoutube().JSUrl <> js_url) ) then
+            if (waitDialog <> invalid) then
+                waitDialog.UpdateText( "Downloading javascript file..." )
+            end if
             jsHttp = NewHttp( js_url )
             headers = { }
             headers["User-Agent"] = getConstants().USER_AGENT
             javascript = jsHttp.getToStringWithTimeout(10, headers)
+            if (waitDialog <> invalid) then
+                waitDialog.UpdateText( "Parsing javascript..." )
+            end if
             mainfunc = getMainfuncFromJS(javascript)
             if ( mainfunc <> invalid ) then
                 funcs = getOtherFuncs(mainfunc, javascript)
@@ -87,6 +96,9 @@ Function get_js_sm(video_id) as Dynamic
         else
             print("Using functions in memory extracted from " + js_url)
         end if
+    end if
+    if ( stsValChanged = true AND funcs <> invalid ) then
+        funcs["stsValChanged"] = true
     end if
     return funcs
 End Function
