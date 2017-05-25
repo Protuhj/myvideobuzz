@@ -123,7 +123,7 @@ Function InitYouTube() As Object
 
     ' Version of the history.
     ' Update when a new site is added, or when information stored in the registry might change
-    this.HISTORY_VERSION = "10"
+    this.HISTORY_VERSION = "11"
     regHistVer = RegRead( "HistoryVersion", "Settings" )
     if ( regHistVer = invalid OR regHistVer <> this.HISTORY_VERSION ) then
         print( "History version mismatch (clearing history), found: " + tostr( regHistVer ) + ", expected: " + this.HISTORY_VERSION )
@@ -1857,68 +1857,6 @@ Function getStreamableMP4Url(video as Object) as Object
     return video["Streams"]
 end function
 
-Function getVKontakteMP4Url(video as Object, timeout = 0 as Integer ) as Object
-    video["Streams"].Clear()
-
-    if ( video["URL"] <> invalid ) then
-        vk240pUrlRegex = CreateObject( "roRegex", "url240=(.*?)&amp;", "i" )
-        vk360pUrlRegex = CreateObject( "roRegex", "url360=(.*?)&amp;", "i" )
-        vk480pUrlRegex = CreateObject( "roRegex", "url480=(.*?)&amp;", "i" )
-        vk720pUrlRegex = CreateObject( "roRegex", "url720=(.*?)&amp;", "i" )
-        url = video["URL"]
-        port = CreateObject( "roMessagePort" )
-        ut = CreateObject( "roUrlTransfer" )
-        ut.SetPort( port )
-        ut.AddHeader( "User-Agent", getConstants().USER_AGENT )
-        ut.SetUrl( url )
-        if ( ut.AsyncGetToString() ) then
-            while ( true )
-                msg = Wait( timeout, port )
-                if ( type(msg) = "roUrlEvent" ) then
-                    status = msg.GetResponseCode()
-                    if ( status = 200 ) then
-                        responseString = msg.GetString()
-                        matches = vk240pUrlRegex.Match( responseString )
-                        if ( matches <> invalid AND matches.Count() > 1 ) then
-                            video["Streams"].Push( {url: URLDecode( htmlDecode( matches[1] ) ), bitrate: 400, quality: false, contentid: video["ID"]} )
-                            video["Live"]          = false
-                            video["StreamFormat"]  = "mp4"
-                        end if
-
-                        matches = vk360pUrlRegex.Match( responseString )
-                        if ( matches <> invalid AND matches.Count() > 1 ) then
-                            video["Streams"].Push( {url: URLDecode( htmlDecode( matches[1] ) ), bitrate: 750, quality: false, contentid: video["ID"]} )
-                            video["Live"]          = false
-                            video["StreamFormat"]  = "mp4"
-                        end if
-
-                        matches = vk480pUrlRegex.Match( responseString )
-                        if ( matches <> invalid AND matches.Count() > 1 ) then
-                            video["Streams"].Push( {url: URLDecode( htmlDecode( matches[1] ) ), bitrate: 1000, quality: false, contentid: video["ID"]} )
-                            video["Live"]          = false
-                            video["StreamFormat"]  = "mp4"
-                        end if
-
-                        hdmatches = vk720pUrlRegex.Match( responseString )
-                        if ( hdmatches <> invalid AND hdmatches.Count() > 1 ) then
-                            video["Streams"].Push( {url: URLDecode( htmlDecode( hdmatches[1] ) ), bitrate: 2500, quality: true, contentid: video["ID"]} )
-                            video["Live"]          = false
-                            video["StreamFormat"]  = "mp4"
-                            video["HDBranded"] = true
-                            video["IsHD"] = true
-                        end if
-                    end if
-                    exit while
-                else if ( type(msg) = "Invalid" ) then
-                    ut.AsyncCancel()
-                    exit while
-                end if
-            end while
-        end if
-    end if
-    return video["Streams"]
-end function
-
 Function getVineMP4Url(video as Object, timeout = 0 as Integer, loginCookie = "" as String) as Object
     video["Streams"].Clear()
 
@@ -1996,8 +1934,6 @@ Function video_get_qualities(video as Object) As Integer
             getLiveleakMP4Url( video )
         else if ( source = constants.sVINE ) then
             getVineMP4Url( video )
-        else if ( source = constants.sVKONTAKTE ) then
-            getVKontakteMP4Url( video )
         else if ( source = constants.sVIDZI ) then
             getVidziMP4Url( video )
         else if ( source = constants.sSTREAMABLE ) then

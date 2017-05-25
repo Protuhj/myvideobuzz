@@ -222,9 +222,6 @@ Function NewRedditVideoList(jsonObject As Object) As Object
         else if ( domain = "vine.co" ) then
             video = NewRedditURLVideo( record, constants.sVINE )
             supported = true
-        else if ( domain = "vkontakte.com" or domain = "vk.com" ) then
-            video = NewRedditURLVideo( record, constants.sVKONTAKTE )
-            supported = true
         else if ( domain = "vidzi.tv" ) then
             video = NewRedditURLVideo( record, constants.sVIDZI )
             supported = true
@@ -453,8 +450,6 @@ Function getDefaultThumb( currentThumb as Dynamic, source as String ) as String
             currentThumb = "pkg:/images/LiveLeak.jpg"
         else if ( Source = constants.sVINE ) then
             currentThumb = "pkg:/images/vine.jpg"
-        else if ( Source = constants.sVKONTAKTE ) then
-            currentThumb = "pkg:/images/vkontakte.jpg"
         else if ( Source = constants.sVIDZI ) then
             currentThumb = "pkg:/images/Vidzi.jpg"
         else if ( Source = constants.sSTREAMABLE ) then

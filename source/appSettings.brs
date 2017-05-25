@@ -826,7 +826,6 @@ Function LoadConstants() as Object
     this.sVINE              = "Vine"
     this.sGFYCAT            = "Gfycat"
     this.sLIVELEAK          = "LiveLeak"
-    this.sVKONTAKTE         = "VKontakte"
     this.sVIDZI             = "Vidzi.tv"
     this.sTWITCH            = "Twitch"
     this.sSTREAMABLE        = "Streamable"
