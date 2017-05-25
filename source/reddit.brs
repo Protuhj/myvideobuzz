@@ -228,6 +228,9 @@ Function NewRedditVideoList(jsonObject As Object) As Object
         else if ( domain = "vidzi.tv" ) then
             video = NewRedditURLVideo( record, constants.sVIDZI )
             supported = true
+        else if ( domain = "streamable.com" ) then
+            video = NewRedditURLVideo( record, constants.sSTREAMABLE )
+            supported = true
         end if
         if ( supported = true AND video <> invalid AND video["ID"] <> invalid AND video["ID"] <> "" ) then
             videoList.Push( video )
@@ -454,6 +457,8 @@ Function getDefaultThumb( currentThumb as Dynamic, source as String ) as String
             currentThumb = "pkg:/images/vkontakte.jpg"
         else if ( Source = constants.sVIDZI ) then
             currentThumb = "pkg:/images/Vidzi.jpg"
+        else if ( Source = constants.sSTREAMABLE ) then
+            currentThumb = "pkg:/images/streamable.png"
         else
             currentThumb = "pkg:/images/no_thumb.jpg"
         end if

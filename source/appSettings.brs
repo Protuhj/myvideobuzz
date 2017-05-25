@@ -829,6 +829,7 @@ Function LoadConstants() as Object
     this.sVKONTAKTE         = "VKontakte"
     this.sVIDZI             = "Vidzi.tv"
     this.sTWITCH            = "Twitch"
+    this.sSTREAMABLE        = "Streamable"
 
     ' Reddit Query Indices
     this.sRED_HOT           = 0

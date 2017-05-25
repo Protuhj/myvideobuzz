@@ -1836,6 +1836,27 @@ Function getVidziMP4Url(video as Object) as Object
     return video["Streams"]
 end function
 
+Function getStreamableMP4Url(video as Object) as Object
+    video["Streams"].Clear()
+
+    if ( video["URL"] <> invalid ) then
+        streamableMP4UrlRegex = CreateObject( "roRegex", "og:video:url.*content=\" + Quote() + "(.*)\" + Quote(), "i" )
+        url = video["URL"]
+        http = NewHttp( url )
+        headers = { }
+        headers["User-Agent"] = getConstants().USER_AGENT
+        htmlString = firstValid( http.getToStringWithTimeout(10, headers), "" )
+        matches = streamableMP4UrlRegex.Match( htmlString )
+        if ( matches <> invalid AND matches.Count() > 1 ) then
+            video["Streams"].Push( {url: URLDecode( htmlDecode( matches[1] ) ), bitrate: 0, quality: false, contentid: url} )
+            video["Live"]          = false
+            video["StreamFormat"]  = "mp4"
+        end if
+    end if
+
+    return video["Streams"]
+end function
+
 Function getVKontakteMP4Url(video as Object, timeout = 0 as Integer ) as Object
     video["Streams"].Clear()
 
@@ -1902,10 +1923,18 @@ Function getVineMP4Url(video as Object, timeout = 0 as Integer, loginCookie = ""
     video["Streams"].Clear()
 
     if ( video["URL"] <> invalid ) then
-        ' "contentUrl"\s*:\s*"(.*)"
-        vineMP4UrlRegex = CreateObject( "roRegex", Quote() + "contentUrl" + Quote() + "\s*:\s*" + Quote() + "(.*)" + Quote(), "ig" )
+        vineIDRegex = CreateObject( "roRegex", "https?://(?:www\.)?vine\.co/(?:v|oembed)/(\w+)", "ig" )
         url = video["URL"]
+        idMatches = vineIDRegex.match( url )
+        videoID = invalid
+        if ( idMatches <> invalid AND idMatches.Count() > 1) then
+            videoID = idMatches[1]
+        else
+            print "Failed to find Vine video ID from URL " + url
+            return invalid
+        end if
         isSSL = false
+        url = "https://archive.vine.co/posts/" + videoID + ".json"
         if ( Left( LCase( url ), 5 ) = "https" ) then
             isSSL = true
         end if
@@ -1928,12 +1957,17 @@ Function getVineMP4Url(video as Object, timeout = 0 as Integer, loginCookie = ""
                     status = msg.GetResponseCode()
                     if ( status = 200 ) then
                         responseString = msg.GetString()
-                        matches = vineMP4UrlRegex.Match( responseString )
-                        if ( matches <> invalid AND matches.Count() > 1 ) then
-                            video["Streams"].Push( {url: URLDecode( htmlDecode( matches[1] ) ), bitrate: 512, quality: false, contentid: video["ID"]} )
+                        jsonObj = ParseJson( responseString )
+                        
+                        if ( jsonObj <> invalid AND jsonObj.videoUrl <> invalid ) then
+                            video["Streams"].Push( {url: URLDecode( jsonObj.videoUrl ), bitrate: 512, quality: false, contentid: video["ID"]} )
                             video["Live"]          = false
                             video["StreamFormat"]  = "mp4"
-                            video["SSL"] = isSSL
+                            if ( Left( LCase( jsonObj.videoUrl ), 5 ) = "https" ) then
+                                video["SSL"] = true
+                            else
+                                video["SSL"] = false
+                            end if
                         end if
                     end if
                     exit while
@@ -1966,6 +2000,8 @@ Function video_get_qualities(video as Object) As Integer
             getVKontakteMP4Url( video )
         else if ( source = constants.sVIDZI ) then
             getVidziMP4Url( video )
+        else if ( source = constants.sSTREAMABLE ) then
+            getStreamableMP4Url( video )
         end if
 
         if ( video["Streams"].Count() > 0 ) then

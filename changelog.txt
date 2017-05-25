@@ -1,3 +1,6 @@
+Version 2.1 Build 016
+    - Fixes Issue #136 - Fixes Vine.co parsing for reddit.
+    - Fixes Issue #135 - Adds support for Streamable.com for reddit.
 Version 2.1 Build 015
     - Fixes Issue #134 - Added indication that the channel is working
     when a video requires additional processing to play.
