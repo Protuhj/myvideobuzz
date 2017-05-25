@@ -620,7 +620,7 @@ Function getEnumValuesForType( prefType as String, enumType = invalid as Dynamic
         else if ( enumType = constants.eREDDIT_QUERIES ) then
             retVal = [ "Hot", "New", "Rising", "Top", "Controversial" ]
         else if ( enumType = constants.eREDDIT_FILTERS ) then
-            retVal = [ "This Hour", "Today", "This Week", "This Year", "All Time" ]
+            retVal = [ "This Hour", "Today", "This Week", "This Month", "This Year", "All Time" ]
         else if ( enumType = constants.eAUTO_UPDATE_CHECK ) then
             retVal = [ "Disabled", "New Releases Only", "Newest (Release OR Development)" ]
         else
@@ -642,7 +642,7 @@ Function getEnumValueForType( enumType as String, index as Integer ) as Object
     else if ( enumType = constants.eREDDIT_QUERIES ) then
         retVal = [ "Hot", "New", "Rising", "Top", "Controversial" ][index]
     else if ( enumType = constants.eREDDIT_FILTERS ) then
-        retVal = [ "Hour", "Day", "Week", "Year", "All" ][index]
+        retVal = [ "Hour", "Day", "Week", "Month", "Year", "All" ][index]
     else if ( enumType = constants.eAUTO_UPDATE_CHECK ) then
         ' Not used -- added for future use, maybe?
         retVal = [ "Off", "Release", "Newest"][index]
@@ -841,8 +841,9 @@ Function LoadConstants() as Object
     this.sRED_HOUR          = 0
     this.sRED_TODAY         = 1
     this.sRED_WEEK          = 2
-    this.sRED_YEAR          = 3
-    this.sRED_ALL           = 4
+    this.sRED_MONTH         = 3
+    this.sRED_YEAR          = 4
+    this.sRED_ALL           = 5
 
     ' Auto Update Check Indices
     this.sUPDATE_OFF        = 0

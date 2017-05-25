@@ -1,3 +1,5 @@
+Version 2.1 Build 019
+    - Fixes Issue #100 - Adds Month filter to reddit.
 Version 2.1 Build 018
     - Fixes Issue #137 - Fixes LiveLeak support for reddit.
 Version 2.1 Build 017
