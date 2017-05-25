@@ -1772,27 +1772,39 @@ Function getLiveleakMP4Url(video as Object, timeout = 0 as Integer, loginCookie 
     video["Streams"].Clear()
 
     if ( video["URL"] <> invalid ) then
-        liveleakMP4UrlRegex = CreateObject( "roRegex", "file\:\s\" + Quote() + "(.*)&ec_rate", "ig" )
-        liveleakMP4HDUrlRegex = CreateObject( "roRegex", "hd_file_url\=(.*)\%26ec_rate", "ig" )
+        liveleakMP4UrlRegex = CreateObject( "roRegex", "source\s+src=\" + Quote() + "(.*)\" + Quote() + "[^>]*res=\" + Quote() + "SD\" + Quote() , "ig" )
+        liveleakMP4HDUrlRegex = CreateObject( "roRegex", "source\s+src=\" + Quote() + "(.*)\" + Quote() + "[^>]*res=\" + Quote() + "HD\" + Quote(), "ig" )
+        
         url = video["URL"]
         port = CreateObject( "roMessagePort" )
         ut = CreateObject( "roUrlTransfer" )
+        if ( Left( LCase( url ), 5 ) <> "https" ) then
+            httpToHttpsRegex = CreateObject( "roRegex", "http", "ig" )
+            url = httpToHttpsRegex.replace( url, "https" )
+        end if
         ut.SetPort( port )
-        ut.AddHeader( "User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:28.0) Gecko/20100101 Firefox/28.0" )
+        ut.AddHeader( "User-Agent", getConstants().USER_AGENT )
         ut.AddHeader( "Cookie", loginCookie )
         ut.SetUrl( url )
+        ut.SetCertificatesFile( "common:/certs/ca-bundle.crt" )
+        ' Wrap in an eval() block to catch any potential errors.
+        eval( "ut.SetCertificatesDepth( 3 )" )
+        ut.InitClientCertificates()
         if ( ut.AsyncGetToString() ) then
             while ( true )
                 msg = Wait( timeout, port )
                 if ( type(msg) = "roUrlEvent" ) then
                     status = msg.GetResponseCode()
                     if ( status = 200 ) then
+                        print "Getting Liveleak URL: " + url + " returned 200."
                         responseString = msg.GetString()
                         matches = liveleakMP4UrlRegex.Match( responseString )
                         if ( matches <> invalid AND matches.Count() > 1 ) then
                             video["Streams"].Push( {url: URLDecode( htmlDecode( matches[1] ) ), bitrate: 512, quality: false, contentid: video["ID"]} )
                             video["Live"]          = false
                             video["StreamFormat"]  = "mp4"
+                        else
+                            print "Failed to match liveleak SD regex"
                         end if
 
                         hdmatches = liveleakMP4HDUrlRegex.Match( responseString )
@@ -1802,7 +1814,11 @@ Function getLiveleakMP4Url(video as Object, timeout = 0 as Integer, loginCookie 
                             video["StreamFormat"]  = "mp4"
                             video["HDBranded"] = true
                             video["IsHD"] = true
+                        else
+                            print "Failed to match liveleak HD regex"
                         end if
+                    else
+                        print "ERROR: Getting Liveleak URL: " + url + " returned " + tostr( status )
                     end if
                     exit while
                 else if ( type(msg) = "Invalid" ) then

@@ -1,3 +1,5 @@
+Version 2.1 Build 018
+    - Fixes Issue #137 - Fixes LiveLeak support for reddit.
 Version 2.1 Build 017
     - Fixes Issue #138 - Removes support for Vkontakte and VK.com as the links no longer work on reddit.
 Version 2.1 Build 016
