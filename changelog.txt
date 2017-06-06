@@ -1,5 +1,5 @@
 Version 2.1 Build 020
-    - Fixes Issue #100 - Adds Month filter to reddit.
+    - Catches another case where DASH playback would fail, but re-playing wouldn't fall back to non-DASH.
 Version 2.1 Build 019
     - Fixes Issue #100 - Adds Month filter to reddit.
 Version 2.1 Build 018
