@@ -1174,7 +1174,7 @@ Function DisplayVideo(content As Object)
                 exit while
             else if (msg.isRequestFailed()) then
                 print "play failed: " ; msg.GetMessage() ; + " Code: " + toStr( msg.GetIndex() )
-                if ((msg.GetIndex() = -5 OR msg.GetIndex() = -1) AND content["StreamFormat"] <> invalid AND content["StreamFormat"] = "dash") then
+                if ((msg.GetIndex() = -5 OR msg.GetIndex() = -1 OR msg.GetIndex() = -3) AND content["StreamFormat"] <> invalid AND content["StreamFormat"] = "dash") then
                     content["FailedDash"] = true
                     ShowErrorDialog( "DASH playback failed, try again.", "DASH Playback Error")
                 else

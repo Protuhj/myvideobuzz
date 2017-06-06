@@ -74,8 +74,13 @@ Sub CheckForMCast()
                     mvbRespond = true
                 end if
             else if ((Left(data, 2) = "2:")) then ' Allow push of videos from other sources on the LAN (not implemented within this source)
-                print("Received force: " + Mid(data, 3))
-                'youtube.activeVideo = ParseJson(Mid(data, 3))
+                remainder = Mid(data, 3)
+                print("Received force: " + remainder)
+                handleYouTubePush( remainder )
+            else if ((Left(data, 3) = "99:")) then ' Force-play of direct URL
+                remainder = Mid(data, 4)
+                print("Received force 99: " + remainder)
+                handleDirectURLPush( remainder )
             else if ((Left(data, 2) = "1:")) then
                 ' print("Received udp response: " + Mid(data, 3))
             end if
@@ -94,6 +99,144 @@ Sub CheckForMCast()
     ' Determine if the udp socket and message port need to be re-initialized
     HandleStaleMessagePort( youtube )
 End Sub
+
+Sub handleYouTubePush( youtubeID as String )
+    youtube = getYoutube()
+    tokens = strTokenize( youtubeID, ";" )
+    if ( tokens.Count() = 2 ) then
+        'print "My device ID: " ; youtube.device_id
+        if (youtube.device_id = tokens[0]) then
+            ids = []
+            ids.push(tokens[1])
+
+            res = youtube.ExecBatchQueryV3( ids )
+            videos = youtube.newVideoListFromJSON( res.items )
+            if (videos.Count() > 0) then
+            
+                metadata = GetVideoMetaData( videos )
+                if (metadata.Count() > 0) then
+                
+                    theVideo = metadata[0]
+                    result = video_get_qualities(theVideo)
+                    if (result = 0) then
+                        DisplayVideo(theVideo)
+                    end if
+                else
+                    problem = ShowDialogNoButton( "", "Having trouble finding a Roku-compatible stream..." )
+                    sleep( 3000 )
+                    problem.Close()
+                end if
+            else
+                problem = ShowDialogNoButton( "", "Invalid, or deleted video pushed." )
+                sleep( 3000 )
+                problem.Close()
+            end if
+        end if
+        print "Roku ID: " ; tokens[0]
+        print "Video ID: " ; tokens[1]
+    end if
+End Sub
+
+Sub handleDirectURLPush( URL as String )
+     youtube = getYoutube()
+    tokens = strTokenize( URL, ";" )
+    if ( tokens.Count() = 2 ) then
+        'print "My device ID: " ; youtube.device_id
+        if (youtube.device_id = tokens[0]) then
+            metaD = newForcedVideo(tokens[1])
+            if (metaD <> invalid) then
+                DisplayVideo(metaD)
+            else
+                print "Failed to set video type for " ; tokens[1]
+            end if
+        end if
+        print "Roku ID: " ; tokens[0]
+        print "Video ID: " ; tokens[1]
+    end if
+End Sub
+
+Function newForcedVideo(URL as String) as Dynamic
+
+    constants = getConstants()
+    meta = CreateObject("roAssociativeArray")
+    meta.ContentType = "movie"
+
+    meta["ID"]                     = "fake"
+    meta["Author"]                 = "Unknown"
+    meta["TitleSeason"]            = "Unknown"
+    meta["Title"]                  = "Forced play from external source."
+    meta["Description"]            = "Received from external source."
+    meta["Length"]                 = 0
+    if (right(lcase(URL), 4) = "m3u8") then
+        meta["StreamFormat"]           = "hls"
+    else if (right(lcase(URL), 3) = "mp4") then
+        meta["StreamFormat"]           = "mp4"
+    else
+        vidType = GetForcedTypeSuggestion()
+        if (vidType <> "") then
+            meta["StreamFormat"] = vidType
+        else
+            return invalid
+        end if
+    end if
+    meta["Live"]                   = false
+    meta["Streams"]                = []
+    meta["Streams"].Push( {url: URL, bitrate: 512, quality: false, contentid: "fake"} )
+    meta["Linked"]                 = ""
+    meta["Source"]                 = "External"
+    meta["BookmarkPosition"]       = 0
+    'meta["SwitchingStrategy"]      = "no-adaptation"
+    'PrintAA(meta)
+    return meta
+End Function
+
+Function GetForcedTypeSuggestion() as String
+    dialog = CreateObject("roMessageDialog")
+    port = CreateObject("roMessagePort")
+    dialog.SetMessagePort(port)
+    dialog.SetTitle("Received Video Push")
+    dialog.SetText("Unable to detect video type, what should it be treated as?")
+    dialog.EnableBackButton(true)
+    dialog.SetMenuTopLeft( true )
+    dialog.addButton(1, "Mp4")
+    dialog.addButton(2, "HLS (m3u8)")
+    dialog.addButton(3, "Cancel")
+    dialog.Show()
+    ret = ""
+    while true
+        dlgMsg = wait(2000, dialog.GetMessagePort())
+        if (type(dlgMsg) = "roMessageDialogEvent") then
+            if (dlgMsg.isButtonPressed()) then
+                if (dlgMsg.GetIndex() = 1) then
+                    dialog.Close()
+                    ret = "mp4"
+                    exit while
+                else if (dlgMsg.GetIndex() = 2) then
+                    dialog.Close()
+                    ret = "hls"
+                    exit while
+                else if (dlgMsg.GetIndex() = 3) then
+                    dialog.Close()
+                    exit while
+                end if
+            else if (dlgMsg.isScreenClosed()) then
+                dialog.Close()
+                exit while
+            else
+                ' print ("Unhandled msg type")
+                exit while
+            end if
+        else if (dlgMsg = invalid) then
+            CheckForMCast()
+        else
+            ' print ("Unhandled msg: " + type(dlgMsg))
+            exit while
+        end if
+    end while
+    print "User selected: " ; ret
+    return ret
+End Function
+
 
 '********************************************************************
 ' Determines if there are available videos on the LAN to continue watching
