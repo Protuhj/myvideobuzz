@@ -13,8 +13,9 @@
 '******************************************************************************
 Sub ViewReddits(youtube as Object, url = "videos" as String)
     prefs = getPrefs()
-    redditQueryType = firstValid( getEnumValueForType( getConstants().eREDDIT_QUERIES, prefs.getPrefValue( prefs.RedditFeed.key ) ), "Hot" )
-    redditFilterType = firstValid( getEnumValueForType( getConstants().eREDDIT_FILTERS, prefs.getPrefValue( prefs.RedditFilter.key ) ), "All" )
+    consts = getConstants()
+    redditQueryType = firstValid( getEnumValueForType( consts.eREDDIT_QUERIES, prefs.getPrefValue( prefs.RedditFeed.key ) ), "Hot" )
+    redditFilterType = firstValid( getEnumValueForType( consts.eREDDIT_FILTERS, prefs.getPrefValue( prefs.RedditFilter.key ) ), "All" )
     title = "Reddit (" + redditQueryType
     if ( redditQueryType = "Top" or redditQueryType = "Controversial" ) then
         title = title + " - " + redditFilterType + ")"
@@ -41,6 +42,9 @@ Sub ViewReddits(youtube as Object, url = "videos" as String)
     for each category in categories
         categoryList.Push(category.title)
     next
+    if ( prefs.getPrefValue( consts.pREDDIT_SORT ) = consts.ENABLED_VALUE ) then
+        categoryList.Sort("i")
+    end if
     ' Category selection function
      oncontent_callback = [categories, m,
         function(categories, youtube, set_idx)
@@ -90,9 +94,9 @@ Sub ViewReddits(youtube as Object, url = "videos" as String)
                     return { isContentList: true, content: doQuery( theLink, previous, categories[category_idx] ) }
                 else if ( video[set_idx]["isPlaylist"] = true ) then
                     ' printAA( video[set_idx] )
-                    if ( video[set_idx]["Source"] = GetConstants().sYOUTUBE ) then
+                    if ( video[set_idx]["Source"] = consts.sYOUTUBE ) then
                         youtube.FetchVideoList( "GetPlaylistItems", video[set_idx]["TitleSeason"], false, {contentArg: video[set_idx]["PlaylistID"]}, "Loading playlist...", true )
-                    else if ( video[set_idx]["Source"] = GetConstants().sGOOGLE_DRIVE ) then
+                    else if ( video[set_idx]["Source"] = consts.sGOOGLE_DRIVE ) then
                         getGDriveFolderContents( video[set_idx] )
                     end if
                     return { isContentList: false, vidIdx: set_idx }
@@ -535,16 +539,22 @@ End Function
 Sub EditRedditSettings()
     settingmenu = [
         {
+            Title: "Show on Home Screen",
+            HDPosterUrl:"pkg:/images/reddit.jpg",
+            SDPosterUrl:"pkg:/images/reddit.jpg",
+            prefData: getPrefs().getPrefData( getConstants().pREDDIT_ENABLED )
+        },
+        {
             Title: "Manage Subreddits",
             HDPosterUrl:"pkg:/images/reddit.jpg",
             SDPosterUrl:"pkg:/images/reddit.jpg",
             callback: "ManageSubreddits"
         },
         {
-            Title: "Show on Home Screen",
+            Title: "Subreddits Sort",
             HDPosterUrl:"pkg:/images/reddit.jpg",
             SDPosterUrl:"pkg:/images/reddit.jpg",
-            prefData: getPrefs().getPrefData( getConstants().pREDDIT_ENABLED )
+            prefData: getPrefs().getPrefData( getConstants().pREDDIT_SORT )
         },
         {
             Title: "Reddit Feed to Display",

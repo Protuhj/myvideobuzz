@@ -90,6 +90,13 @@ Function LoadPreferences() as Object
         prefType: "enum",
         enumType: consts.eREDDIT_FILTERS
         })
+    prefs.RedditSubSort = createPref( { prefName: "Reddit Subreddit Sort",
+        prefDesc: "Should the list of subreddits be sorted alphabetically?",
+        prefDefault: consts.DISABLED_VALUE,
+        prefKey: consts.pREDDIT_SORT,
+        prefType: "enum",
+        enumType: consts.eENABLED_DISABLED
+        })
 
     prefs.AutoUpdateCheck = createPref( { prefName: "Automatically Check For Updates",
         prefDesc: "Automatically check for updates when the channel boots?",
@@ -814,6 +821,7 @@ Function LoadConstants() as Object
     this.pVIDEO_QUALITY         = "VideoQuality"
     this.pREDDIT_FEED           = "RedditFeed"
     this.pREDDIT_FILTER         = "RedditFilter"
+    this.pREDDIT_SORT           = "RedditSubSort"
     this.pROKU_PASSWORD         = "RokuPassword"
     this.pAUTO_UPDATE           = "AutoUpdateCheck"
     this.pLAN_VIDEOS_ENABLED    = "LanVideosEnabled"
