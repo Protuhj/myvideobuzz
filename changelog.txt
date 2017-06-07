@@ -1,3 +1,5 @@
+Version 2.1 Build 022
+    - Fixes bug with sorting of subreddits. Whoops.
 Version 2.1 Build 021
     - Fixes Issue #139 - Adds a reddit preference to be able to sort your subreddits when you open the reddit feature.
 Version 2.1 Build 020
@@ -17,5 +19,3 @@ Version 2.1 Build 015
     - "Parsing javascript..." takes the longest out of the whole process.
 Version 2.1 Build 013
     - Adds support for external control via the Roku External Control API.
-Version 2.1 Build 012
-    - Fixes bug with live search feature.

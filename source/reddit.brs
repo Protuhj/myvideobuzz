@@ -42,9 +42,6 @@ Sub ViewReddits(youtube as Object, url = "videos" as String)
     for each category in categories
         categoryList.Push(category.title)
     next
-    if ( prefs.getPrefValue( consts.pREDDIT_SORT ) = consts.ENABLED_VALUE ) then
-        categoryList.Sort("i")
-    end if
     ' Category selection function
      oncontent_callback = [categories, m,
         function(categories, youtube, set_idx)
@@ -255,7 +252,16 @@ Function RedditCategoryList() As Object
     else
         subredditArray = ["videos"]
     end if
-    for each record in subredditArray
+    if ( getPrefs().getPrefValue( getConstants().pREDDIT_SORT ) = getConstants().ENABLED_VALUE ) then
+        subArrayObject = CreateObject("roArray", subredditArray.Count(), true)
+        for each item in subredditArray
+            subArrayObject.push( item )
+        next
+        subArrayObject.Sort("i")
+    else
+        subArrayObject = subredditArray
+    end if
+    for each record in subArrayObject
         category        = CreateObject("roAssociativeArray")
         category.title  = record
         category.link   = record
