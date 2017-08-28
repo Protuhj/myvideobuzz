@@ -1864,7 +1864,7 @@ Function getStreamableMP4Url(video as Object) as Object
         htmlString = firstValid( http.getToStringWithTimeout(10, headers), "" )
         matches = streamableMP4UrlRegex.Match( htmlString )
         if ( matches <> invalid AND matches.Count() > 1 ) then
-            video["Streams"].Push( {url: URLDecode( htmlDecode( matches[1] ) ), bitrate: 0, quality: false, contentid: url} )
+            video["Streams"].Push( {url: matches[1], bitrate: 0, quality: false, contentid: url} )
             video["Live"]          = false
             video["StreamFormat"]  = "mp4"
         end if

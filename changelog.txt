@@ -1,3 +1,5 @@
+Version 2.1 Build 023
+    - Fixes some Streamable links for reddit.
 Version 2.1 Build 022
     - Fixes bug with sorting of subreddits. Whoops.
 Version 2.1 Build 021
@@ -17,5 +19,3 @@ Version 2.1 Build 015
     - Fixes Issue #134 - Added indication that the channel is working
     when a video requires additional processing to play.
     - "Parsing javascript..." takes the longest out of the whole process.
-Version 2.1 Build 013
-    - Adds support for external control via the Roku External Control API.
