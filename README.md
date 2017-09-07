@@ -75,5 +75,3 @@ Your Roku's debug console can be accessed by Telnet at port `8085`:
 
 Want to contribute? Great! Visit the [VideoBuzz subreddit](http://www.reddit.com/r/videobuzz).
 You can also check out my [Facebook page](https://www.facebook.com/Protuhj).
-
-Or, to Donate: <a href='https://pledgie.com/campaigns/23378'><img alt='Click here to lend your support to: VideoBuzz Development and make a donation at pledgie.com !' src='https://pledgie.com/campaigns/23378.png?skin_name=chrome' border='0' ></a>
