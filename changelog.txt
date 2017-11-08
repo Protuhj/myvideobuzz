@@ -1,21 +1,9 @@
+Version 2.2 Build 000
+    - Official release of 2.2
+    - Current functionality (except for Twitch) seems stable.
 Version 2.1 Build 023
     - Fixes some Streamable links for reddit.
 Version 2.1 Build 022
     - Fixes bug with sorting of subreddits. Whoops.
 Version 2.1 Build 021
     - Fixes Issue #139 - Adds a reddit preference to be able to sort your subreddits when you open the reddit feature.
-Version 2.1 Build 020
-    - Catches another case where DASH playback would fail, but re-playing wouldn't fall back to non-DASH.
-Version 2.1 Build 019
-    - Fixes Issue #100 - Adds Month filter to reddit.
-Version 2.1 Build 018
-    - Fixes Issue #137 - Fixes LiveLeak support for reddit.
-Version 2.1 Build 017
-    - Fixes Issue #138 - Removes support for Vkontakte and VK.com as the links no longer work on reddit.
-Version 2.1 Build 016
-    - Fixes Issue #136 - Fixes Vine.co parsing for reddit.
-    - Fixes Issue #135 - Adds support for Streamable.com for reddit.
-Version 2.1 Build 015
-    - Fixes Issue #134 - Added indication that the channel is working
-    when a video requires additional processing to play.
-    - "Parsing javascript..." takes the longest out of the whole process.
