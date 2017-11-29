@@ -168,7 +168,8 @@ Sub ShowHomeScreen(params = invalid as Dynamic)
     'ids.push("baMyINaV4ms") ' DASH video with signature
     'ids.push("l-PRY_c7x7U") ' DASH video with signature
     'ids.push("y60wDzZt8yg") ' Live Stream
-    'ids.push("jLSEKjhD91c")  ' FTG-15 Flight Test Video - fails for some reason
+    'ids.push("jLSEKjhD91c") ' FTG-15 Flight Test Video - fails for some reason
+    'ids.push("cL8sG3SQmiw")  ' Hydraulic Press Channel - Intro audio sounds like garbage with track 139
 
     'res = youtube.ExecBatchQueryV3( ids )
     'videos = youtube.newVideoListFromJSON( res.items )

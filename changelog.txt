@@ -1,3 +1,6 @@
+Version 2.2 Build 001
+    - Fixes issue #142 - Default DASH audio track to the higher quality track.
+        - This should get rid of an audio 'crackle' noise.
 Version 2.2 Build 000
     - Official release of 2.2
     - Current functionality (except for Twitch) seems stable.

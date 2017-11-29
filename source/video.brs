@@ -1398,6 +1398,7 @@ Function getYouTubeDASHMPD( htmlString as String, video as Object, isSSL as Bool
                     video["IsHD"] = hasHD
                     video["FullHD"] = fullHD
                     video["SSL"] = isSSL
+                    video["TrackIDAudio"] = "140"
                 end if
             end if
         end if
