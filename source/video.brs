@@ -149,6 +149,13 @@ Function InitYouTube() As Object
     this.udp_socket = invalid
     this.mp_socket  = invalid
     this.udp_created = 0
+    this.tcp_socket = invalid
+    this.msgport_tcp = invalid
+    this.tcp_created = 0
+    this.connections = {}
+    this.buffer = CreateObject("roByteArray")
+    this.buffer[512] = 0
+    this.dashManifestContents = invalid
 
     ' Regex found on the internets here: http://stackoverflow.com/questions/3452546/javascript-regex-how-to-get-youtube-video-id-from-url (with modifications)
     ' Pre-compile the YouTube video ID regex
@@ -1162,8 +1169,14 @@ Function DisplayVideo(content As Object)
     video.SetContent(content)
     video.show()
     ret = -1
+    waitTime = 0
+    isDASH = false
+    if (content["StreamFormat"] = "dash") then
+        waitTime = 1000
+        isDASH = true
+    end if
     while (true)
-        msg = wait(0, video.GetMessagePort())
+        msg = wait(waitTime, video.GetMessagePort())
         if (type(msg) = "roVideoScreenEvent") then
             if (Instr(1, msg.getMessage(), "interrupted") > 0) then
                 ret = 1
@@ -1212,6 +1225,8 @@ Function DisplayVideo(content As Object)
             else
                 'print "Unknown event: "; msg.GetType(); " msg: "; msg.GetMessage()
             end if
+        else if (msg = invalid AND isDASH = true) then
+            CheckForUnicast()
         end if
     end while
     ' Add the video to history
@@ -1247,7 +1262,12 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
         ' No dashmpd with protected: leanback
         ' Includes dashmpd, but doesn't work with protected: unplugged
         'url = "http://www.youtube.com/get_video_info?el=info&video_id=" + video["ID"]
-        url = "http://www.youtube.com/get_video_info?el=info&video_id=" + video["ID"]
+        if (retryCount = 0) then
+            url = "http://www.youtube.com/get_video_info?el=detailpage&video_id=" + video["ID"]
+        else if (retryCount = 1) then
+            url = "https://www.youtube.com/embed/5_yOGBzBTdc" + video["ID"]
+            isSSL = true
+        end if
         if (getYoutube().STSVal <> invalid) then
             url = url + "&sts=" + getYoutube().STSVal
         end if
@@ -1257,7 +1277,8 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
             url = url + "&sts=" + getYoutube().STSVal
         end if
     else if (retryCount = 1) then
-        url = "http://www.youtube.com/get_video_info?video_id=" + video["ID"] + "&eurl=https://youtube.googleapis.com/v/" + video["ID"]
+        url = "https://www.youtube.com/get_video_info?disable_polymer=true&video_id=" + video["ID"] + "&eurl=https://youtube.googleapis.com/v/" + video["ID"]
+        isSSL = true
         if (getYoutube().STSVal <> invalid) then
             url = url + "&sts=" + getYoutube().STSVal
         end if
@@ -1292,121 +1313,221 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
     return video["Streams"]
 End Function
 
-Function getYouTubeDASHMPD( htmlString as String, video as Object, isSSL as Boolean )
-    dashmpdRegex = CreateObject("roRegex", "dashmpd=([^(" + Chr(34) + "|&|$)]*)", "ig")
+Function dashManifest( videoID as String, formatData, duration, waitDialog )
+    codecRegex = CreateObject("roRegex", "codecs=" + Quote() + "(.+)" + Quote(), "ig")
+    MPDString = "<?xml version=" + Quote() + "1.0" + Quote() + " encoding=" + Quote() + "UTF-8" + Quote() + "?>"
+    MPDString += "<MPD xmlns:xsi=" + Quote() + "http://www.w3.org/2001/XMLSchema-instance" + Quote() + " xmlns=" + Quote() + "urn:mpeg:DASH:schema:MPD:2011" + Quote() + " xmlns:yt=" + Quote() + "http://youtube.com/yt/2012/10/10" + Quote() + " xsi:schemaLocation=" + Quote() + "urn:mpeg:DASH:schema:MPD:2011 DASH-MPD.xsd" + Quote() + " minBufferTime=" + Quote() + "PT1.500S" + Quote() + " profiles=" + Quote() + "urn:mpeg:dash:profile:isoff-on-demand:2011" + Quote() + " type=" + Quote() + "static" + Quote() + " mediaPresentationDuration=" + Quote() + "PT"
+    MPDString += duration
+    MPDString += "S" + Quote() + ">"
+    MPDString += "<Period duration=" + Quote() + "PT" + duration + "S" + Quote() + ">"
+    ' Audio
+    firstSDecrypt = true
+    retObj = {}
+    retObj.didFail = false
+    retObj.mpdString = invalid
+    if ( formatData[ "140" ] <> invalid ) then
+        audioData = formatData["140"]
+        if (audioData.s = invalid) then
+            encodedURL = audioData.url.DecodeUri().DecodeUri().GetEntityEncode()
+        else
+            signatureValObj = decodeEncryptedS( videoID, firstSDecrypt, audioData.s, waitDialog )
+            firstSDecrypt = false
+            if ( signatureValObj.didFail = true ) then
+                return signatureValObj
+            else
+                encodedURL = audioData.url.DecodeUri().DecodeUri().GetEntityEncode() + "&amp;signature=" + signatureValObj.signature
+            end if
+        end if
+        ' print "Audio Encoded URL is: " + encodedURL
+        MPDString += "<AdaptationSet id=" + Quote() + "0" + Quote() + " mimeType=" + Quote() + "audio/mp4" + Quote() + " subsegmentAlignment=" + Quote() + "true" + Quote() + ">"
+        MPDString += "<Role schemeIdUri=" + Quote() + "urn:mpeg:DASH:role:2011" + Quote() + " value=" + Quote() + "main" + Quote() + "/>"
+        MPDString += "<Representation id=" + Quote() + "140" + Quote() + " codecs=" + Quote() + "mp4a.40.2" + Quote() + " audioSamplingRate=" + Quote() + "44100" + Quote() + " startWithSAP=" + Quote() + "1" + Quote() + " bandwidth=" + Quote() + toStr( audioData.bitrate.ToInt() / 8 ) + Quote() + ">"
+        MPDString += "<AudioChannelConfiguration schemeIdUri=" + Quote() + "urn:mpeg:dash:23003:3:audio_channel_configuration:2011" + Quote() + " value=" + Quote() + "2" + Quote() + "/>"
+        MPDString += "<BaseURL yt:contentLength=" + Quote() + toStr( audioData.clen.ToInt() / 8 ) + Quote() + ">" + encodedURL + "</BaseURL>"
+        MPDString += "<SegmentBase indexRange=" + Quote() + audioData.index + Quote() + " indexRangeExact=" + Quote() + "true" + Quote() + ">"
+        MPDString += "<Initialization range=" + Quote() + audioData.init + Quote() + "/>"
+        MPDString += "</SegmentBase></Representation></AdaptationSet>"
+        for each formatKey in formatData
+            setID = 1
+            format = formatData[ formatKey ]
+            if ( format.type.InStr( "audio" ) = -1 ) then
+                ' Check for encoded signature
+                if (format.s = invalid) then
+                    videoURL = format.url.DecodeUri().DecodeUri().GetEntityEncode()
+                else
+                    waitDialog.UpdateText( "Decoding next video URL" )
+                    signatureValObj = decodeEncryptedS( videoID, firstSDecrypt, format.s, waitDialog )
+                    firstSDecrypt = false
+                    if ( signatureValObj.didFail = true ) then
+                        return signatureValObj
+                    else
+                        videoURL = format.url.DecodeUri().DecodeUri().GetEntityEncode() + "&amp;signature=" + signatureValObj.signature
+                    end if
+                end if
+                'print "Video Encoded URL is: " + videoURL
+                formatTypeEscaped = format.type.Unescape().Unescape()
+                codecStr = codecRegex.Match( formatTypeEscaped )[1]
+                lenStr = toStr( format.clen.ToInt() / 8 )
+                resolutionSplit = format.size.Split( "x" )
+                widthStr = resolutionSplit[0]
+                heightStr = resolutionSplit[1]
+                bandwidthStr = toStr( format.bitrate.ToInt() / 8 )
+                MPDString += "<AdaptationSet id=" + Quote() + toStr( setID ) + Quote() + " mimeType=" + Quote() + formatTypeEscaped.split( ";" )[0] + Quote() + " subsegmentAlignment=" + Quote() + "true" + Quote() + ">"
+                MPDString += "<Role schemeIdUri=" + Quote() + "urn:mpeg:DASH:role:2011" + Quote() + " value=" + Quote() + "main" + Quote() + "/>"
+                MPDString += "<Representation id=" + Quote() + format.itag + Quote() + " codecs=" + Quote() + codecStr + Quote() + " width=" + Quote() + widthStr + Quote() + " height=" + Quote() + heightStr + Quote() + " startWithSAP=" + Quote() + "1" + Quote() + " maxPlayoutRate=" + Quote() + "1" + Quote() + " bandwidth=" + Quote() + bandwidthStr + Quote() + " frameRate=" + Quote() + format.fps + Quote() + ">"
+                MPDString += "<BaseURL yt:contentLength=" + Quote() + lenStr + Quote() + ">" + videoURL + "</BaseURL>"
+                MPDString += "<SegmentBase indexRange=" + Quote() + format.index + Quote() + " indexRangeExact=" + Quote() + "true" + Quote() + ">"
+                MPDString += "<Initialization range=" + Quote() + format.init + Quote() + "/>"
+                MPDString += "</SegmentBase></Representation></AdaptationSet>"
+                setID += 1
+            end if
+        end for
+        MPDString += "</Period></MPD>"
+        if ( setID = 1 ) then
+            print "No video streams found?"
+            retObj.didFail = true
+            retObj.mpdString = invalid
+        else
+            retObj.mpdString = MPDString
+        end if
+    else
+        print "No audio data found!"
+        retObj.didFail = true
+        retObj.mpdString = invalid
+    end if
+    return retObj
+End Function
+
+Function decodeEncryptedS( videoID as String, first as Boolean, sVal as String, pleaseWaitDlg )
+    getJSUrl = first
+    retObj = {}
+    retObj.didFail = false
+    retObj.stsValChanged = false
+    retObj.signature = invalid
+    if ( sVal <> invalid AND sVal <> "" ) then
+        ' Use this to just quit early since DASH doesn't work with the encoded URLs for some reason
+        'return getYouTubeMP4Url( video, false, 0 )
+        if ( getJSUrl = true ) then
+            if (pleaseWaitDlg <> invalid) then
+                pleaseWaitDlg.UpdateText( "Downloading webpage..." )
+            end if
+            functionMap = get_js_sm( videoID, pleaseWaitDlg )
+            getJSUrl = false
+        else
+            functionMap = getYoutube().funcmap
+        end if
+        if ( functionMap <> invalid AND functionMap["stsValChanged"] = invalid ) then
+            getYoutube().funcmap = functionMap
+            if (pleaseWaitDlg <> invalid) then
+                pleaseWaitDlg.UpdateText( "Decoding signature..." )
+            end if
+            newSig = decodesig( sVal )
+            if ( newSig <> invalid ) then
+                'signature = "/signature/" + newSig
+                retObj.signature = newSig
+                if (pleaseWaitDlg <> invalid) then
+                    pleaseWaitDlg.UpdateText( "Done!" )
+                end if
+            else
+                retObj.didFail = true
+                print "Failed to decode signature!"
+                if (pleaseWaitDlg <> invalid) then
+                    pleaseWaitDlg.UpdateText( "Failed to decode signature!" )
+                end if
+            end if
+        else if ( functionMap <> invalid AND functionMap["stsValChanged"] <> invalid ) then
+            functionMap["stsValChanged"] = invalid
+            getYoutube().funcmap = functionMap
+            retObj.didFail = true
+            print "STS value has changed"
+            retObj.stsValChanged = true
+            if (pleaseWaitDlg <> invalid) then
+                pleaseWaitDlg.UpdateText( "STS value has changed, going to retry." )
+            end if
+        else ' functionMap = invalid
+            retObj.didFail = true
+            print "Failed to parse javascript!"
+            if (pleaseWaitDlg <> invalid) then
+                pleaseWaitDlg.UpdateText( "Failed to parse javascript!" )
+            end if
+        end if
+    end if
+    return retObj
+End Function
+
+Function createDASHManifest( videoID, htmlString )
+    manifestObj = invalid
+    durRegex = CreateObject("roRegex", "dur%253D([\d\.]+)", "ig")
     commaRegex = CreateObject("roRegex", "%2C", "ig")
     slashRegex = CreateObject("roRegex", "%2F", "ig")
     equalsRegex = CreateObject("roRegex", "%3D", "ig")
-    replaceSRegex = CreateObject("roRegex", "/s/([a-fA-F0-9\.]+)", "ig")
+    ampersandRegex = CreateObject("roRegex", "%26", "ig")
+    urlEncodedRegex = CreateObject("roRegex", "adaptive_fmts=([^(" + Chr(34) + "|&|$)]*)", "ig")
+    durMatch = durRegex.Match( htmlString )
+    pleaseWaitDlg = ShowPleaseWait( "Creating DASH Manifest", "Downloading webpage..." )
+    if ( durMatch.Count() > 1 ) then
+        durationFromInfo = durMatch[1]
+        print "Found duration: " + durationFromInfo
+        adaptiveFmtsStringMatch = urlEncodedRegex.Match( htmlString )
+        if ( adaptiveFmtsStringMatch.Count() > 1 ) then
+            formatData = {}
+            if (not(strTrim(adaptiveFmtsStringMatch[1]) = "")) then
+                adaptiveFmtsString = adaptiveFmtsStringMatch[1]
+                commaSplit = commaRegex.Split( adaptiveFmtsString )
+                for each commaItem in commaSplit
+                    ' print "##############"
+                    settings = {}
+                    ampersandSplit = ampersandRegex.split( commaItem )
+                    for each ampersandItem in ampersandSplit
+                        ' print "ampersandItem: " + ampersandItem
+                        equalsSplit = equalsRegex.split( ampersandItem )
+                        settings[equalsSplit[0]] = equalsSplit[1]
+                    end for
+                    formatData[ settings.itag ] = settings
+                end for
+                manifestObj = dashManifest( videoID, formatData, durationFromInfo, pleaseWaitDlg )
+                pleaseWaitDlg.close()
+            else
+                print "Empty adaptiveFmtsString"
+            end if
+        else
+            print "Adaptive formats regex failed"
+        end if
+    else
+        print "Duration regex failed"
+    end if
+    return manifestObj
+End Function
 
+Function getYouTubeDASHMPD( htmlString as String, video as Object, isSSL as Boolean )
     htmlString = firstValid( htmlString, "" )
-    dashMPDUrl = dashmpdRegex.Match( htmlString )
 
-    constants = getConstants()
-    prefs = getPrefs()
-    getJSUrl = true
-    didFail = false
     ' When true, tells the calling function to retry, since the STS value has changed
     stsValChanged = false
     pleaseWaitDlg = invalid
-    if (dashMPDUrl.Count() > 1) then
-        if (not(strTrim(dashMPDUrl[1]) = "")) then
-            hasHD = false
-            fullHD = false
-            print "Dash MPD URL: " ; dashMPDUrl[1]
-            pair = {itag: "", url: "", sig: ""}
-            storeS = false
-            slashSplit = slashRegex.Split( dashMPDUrl[1] )
-            for each slashItem in slashSplit
-                'print("slashItem: " + ampersandItem)
-                if ( slashItem = "s" ) then
-                    storeS = true
-                else if ( storeS = true ) then
-                    pair["s"] = slashItem
-                    storeS = false
-                end if
-            end for
-            'printAA( pair )
-            signature = ""
-            if ( pair.s <> invalid AND pair.s <> "" ) then
-                ' Use this to just quit early since DASH doesn't work with the encoded URLs for some reason
-                'return getYouTubeMP4Url( video, false, 0 )
-                if ( getJSUrl = true ) then
-                    pleaseWaitDlg = ShowPleaseWait( "Decoding signature", "Downloading webpage..." )
-                    functionMap = get_js_sm( video["ID"], pleaseWaitDlg )
-                    getJSUrl = false
-                else
-                    functionMap = getYoutube().funcmap
-                end if
-                if ( functionMap <> invalid AND functionMap["stsValChanged"] = invalid ) then
-                    getYoutube().funcmap = functionMap
-                    if (pleaseWaitDlg <> invalid) then
-                        pleaseWaitDlg.UpdateText( "Decoding signature..." )
-                    end if
-                    newSig = decodesig( pair.s )
-                    if ( newSig <> invalid ) then
-                        signature = "/signature/" + newSig
-                        if (pleaseWaitDlg <> invalid) then
-                            pleaseWaitDlg.UpdateText( "Done!" )
-                        end if
-                    else
-                        didFail = true
-                        print "Failed to decode signature!"
-                        if (pleaseWaitDlg <> invalid) then
-                            pleaseWaitDlg.UpdateText( "Failed to decode signature!" )
-                        end if
-                    end if
-                else if ( functionMap <> invalid AND functionMap["stsValChanged"] <> invalid ) then
-                    functionMap["stsValChanged"] = invalid
-                    getYoutube().funcmap = functionMap
-                    didFail = true
-                    print "STS value has changed"
-                    stsValChanged = true
-                    if (pleaseWaitDlg <> invalid) then
-                        pleaseWaitDlg.UpdateText( "STS value has changed, going to retry." )
-                    end if
-                else ' functionMap = invalid
-                    didFail = true
-                    print "Failed to parse javascript!"
-                    if (pleaseWaitDlg <> invalid) then
-                        pleaseWaitDlg.UpdateText( "Failed to parse javascript!" )
-                    end if
-                end if
-            else
-                if (pair.sig <> "") then
-                    signature = "/signature/" + pair.sig
-                else
-                    signature = ""
-                end if
-            end if
-            if ( didFail = false ) then
-                urlDecoded = URLDecode(URLDecode(dashMPDUrl[1]))
-                'print ( "Pre urlDecoded: " + urlDecoded )
-                if (signature <> "") then
-                    urlDecoded = replaceSRegex.ReplaceAll( urlDecoded, signature )
-                end if
-                'print ( "urlDecoded: " + urlDecoded )
+    if ( len( htmlString ) > 0 ) then
+        getYoutube().dashManifestContents = invalid
+        manifestObj = createDASHManifest( video["ID"], htmlString )
 
-                streamData = {url: urlDecoded, bitrate: 2300, quality: true, contentid: "dash" }
-                if ( streamData <> invalid ) then
-                    video["Streams"].Push( streamData )
-                end if
+        if ( manifestObj <> invalid ) then
+            if ( manifestObj.didFail = false ) then
+                getYoutube().dashManifestContents = manifestObj.mpdString
+                streamData = {url: "http://localhost:6789", bitrate: 3000, quality: true, contentid: "dash" }
+                video["Streams"].Push( streamData )
+
                 if (video["Streams"].Count() > 0) then
                     video["Live"]          = false
                     video["StreamFormat"]  = "dash"
-                    video["HDBranded"] = hasHD
-                    video["IsHD"] = hasHD
-                    video["FullHD"] = fullHD
-                    video["SSL"] = isSSL
-                    video["TrackIDAudio"] = "140"
+                    video["HDBranded"]     = true
+                    video["IsHD"]          = true
+                    video["FullHD"]        = true
+                    video["SSL"]           = true
+                    video["TrackIDAudio"]  = "140"
                 end if
             end if
         end if
     end if
-    if (pleaseWaitDlg <> invalid) then
-        pleaseWaitDlg.Close()
-    end if
-    if ( stsValChanged = false ) then
+    if ( manifestObj <> invalid AND manifestObj.stsValChanged = invalid ) then
         return video["Streams"]
     else
         return invalid
@@ -1512,7 +1633,7 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                     if ( didFail = false ) then
                         urlDecoded = URLDecode(URLDecode(pair.url + signature))
                         itag% = strtoi( pair.itag )
-                        if ( itag% <> invalid AND ( itag% = 18 OR itag% = 22 OR itag% = 37 ) ) then
+                        if ( itag% <> invalid AND ( itag% = 18 OR itag% = 22 ) ) then
                             if ( Left( LCase( urlDecoded ), 5) = "https" ) then
                                 isSSL = true
                             else if ( isSSL <> true )
@@ -1525,14 +1646,10 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                                     ' 18 is MP4 270p/360p H.264 at .5 Mbps video bitrate
                                     video["Streams"].Push( {url: urlDecoded, bitrate: 512, quality: false, contentid: pair.itag} )
                                 'else if ( itag% = 22 ) then
+                                '    ' The Roku platform fails to decode this video.
                                 '    ' 22 is MP4 720p H.264 at 2-2.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
                                 '    video["Streams"].Push( {url: urlDecoded, bitrate: 2969, quality: true, contentid: pair.itag} )
                                 '    hasHD = true
-                                else if ( itag% = 37 ) then
-                                    ' 37 is MP4 1080p H.264 at 3-5.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
-                                    video["Streams"].Push( {url: urlDecoded, bitrate: 6041, quality: true, contentid: pair.itag } )
-                                    hasHD = true
-                                    fullHD = true
                                 end if
                             else if ( ( videoQualityPref = constants.FORCE_HIGHEST AND itag% > topQuality% ) OR ( videoQualityPref = constants.FORCE_LOWEST AND itag% < topQuality% ) ) then
                                 if ( itag% = 18 ) then
@@ -1540,16 +1657,11 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                                     streamData = {url: urlDecoded, bitrate: 512, quality: false, contentid: pair.itag}
                                     topQuality% = itag%
                                 'else if ( itag% = 22 ) then
+                                '    ' The Roku platform fails to decode this video.
                                 '    ' 22 is MP4 720p H.264 at 2-2.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
                                 '    streamData = {url: urlDecoded, bitrate: 2969, quality: true, contentid: pair.itag}
                                 '    hasHD = true
                                 '    topQuality% = itag%
-                                else if ( itag% = 37 ) then
-                                    ' 37 is MP4 1080p H.264 at 3-5.9 Mbps video bitrate. I set the bitrate to the maximum, for best results.
-                                    streamData = {url: urlDecoded, bitrate: 6041, quality: true, contentid: pair.itag }
-                                    hasHD = true
-                                    fullHD = true
-                                    topQuality% = itag%
                                 end if
                             end if
                         'else

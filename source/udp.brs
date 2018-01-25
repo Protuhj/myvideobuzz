@@ -29,6 +29,28 @@ Sub MulticastInit(youtube as Object)
     youtube.mp_socket = msgPort
 End Sub
 
+Sub UnicastInit(youtube as Object)
+    msgPort = createobject("roMessagePort")
+    tcp = createobject("roStreamSocket")
+    tcp.setMessagePort(msgPort)
+    addr = createobject("roSocketAddress")
+    addr.setPort(6789)
+    tcp.setAddress(addr)
+
+    tcp.NotifyReadable(true)
+    tcp.listen(1)
+    if not tcp.eOK()
+        print "Error creating listen socket"
+        stop
+    end if
+    'youtube.dateObj.Mark()
+    'youtube.udp_created = youtube.dateObj.AsSeconds()
+
+    youtube.tcp_socket = tcp
+    youtube.msgport_tcp = msgPort
+    youtube.tcp_created = 0
+End Sub
+
 '********************************************************************
 ' Makes sure the UDP socket and message port stay fresh.
 ' FIxes an issue where the message port seemingly becomes 'stale'
@@ -46,11 +68,16 @@ Sub HandleStaleMessagePort( youtube as Dynamic )
     end if
 End Sub
 
+Sub CheckForMCast()
+    CheckForMCast_Impl()
+    CheckForUnicast()
+End Sub
+
 '********************************************************************
 ' Determines if someone on the network has tried to query for other videos on the LAN
 ' Listens for active video queries, and responds if necessary
 '********************************************************************
-Sub CheckForMCast()
+Sub CheckForMCast_Impl()
     youtube = getYoutube()
     if (youtube.mp_socket = invalid OR youtube.udp_socket = invalid) then
         print("CheckForMCast: Invalid Message Port or UDP Socket")
@@ -98,6 +125,83 @@ Sub CheckForMCast()
     end if
     ' Determine if the udp socket and message port need to be re-initialized
     HandleStaleMessagePort( youtube )
+End Sub
+
+'********************************************************************
+' Determines if there has been a connection on the TCP port (6789) used
+' to serve the DASH manifest to play adaptive formats
+'********************************************************************
+Sub CheckForUnicast()
+    rn = Chr(13) + Chr(10)
+    youtube = getYoutube()
+    if (youtube.msgport_tcp = invalid OR youtube.tcp_socket = invalid) then
+        print("CheckForUnicast: Invalid Message Port or TCP Socket")
+        return
+    end if
+    tcpListen = youtube.tcp_socket
+    connections = youtube.connections
+    messagePort = youtube.msgport_tcp
+    buffer = youtube.buffer
+    message = youtube.msgport_tcp.GetMessage()
+
+    text = youtube.dashManifestContents
+    if ( text = invalid or len( text ) = 0 ) then
+        return
+    end if
+    'print "MPD is this many bytes: " + toStr( len ( text ) )
+    while (message <> invalid)
+        if (type(message) = "roSocketEvent") then
+            changedID = message.getSocketID()
+            if (changedID = tcpListen.getID() and tcpListen.isReadable()) then
+                ' New
+                newConnection = tcpListen.accept()
+                if (newConnection = Invalid) then
+                    print "accept failed"
+                else
+                    ' print "accepted new connection " newConnection.getID()
+                    newConnection.notifyReadable(true)
+                    newConnection.setMessagePort(messagePort)
+                    connections[Stri(newConnection.getID())] = newConnection
+                end if
+            else
+                ' Activity on an open connection
+                connection = connections[Stri(changedID)]
+                if (connection <> invalid) then
+                    closed = false
+                    if (connection.isReadable()) then
+                        received = connection.receive(buffer, 0, 512)
+                        'print "received is " received
+                        if (received > 0) then
+                            if ( connection.isWritable() ) then
+                                response = "HTTP/1.1 200 OK" + rn
+                                'response += "Date: Wed, 24 Jan 2018 05:04:22 GMT" + rn
+                                response += "Content-Type: text/html; charset=UTF-8" + rn
+                                response += "Content-Length: " + toStr( len( text ) ) + rn
+                                response += "Accept-Ranges: bytes" + rn
+                                response += "Connection: close" + rn + rn
+                                response += text
+                                sent = connection.sendStr(response)
+                                print "Sent " + tostr(sent) + " bytes"
+                            else
+                            print "Socket not writeable!"
+                            end if
+                            'closed = true
+                        else if (received = 0) then
+                            ' client closed
+                            closed = true
+                        end if
+                    end if
+                    if (closed or not connection.eOK()) then
+                        print "closing connection " changedID
+                        connection.close()
+                        connections.delete(Stri(changedID))
+                    end if
+                end if
+            end if
+        end if
+        ' This effectively drains the receive queue
+        message = wait(10, youtube.msgport_tcp)
+    end while
 End Sub
 
 Sub handleYouTubePush( youtubeID as String )

@@ -1,3 +1,7 @@
+Version 2.2 Build 002
+    - Fixes issue #144 - Allow higher quality, DASH streams to play.
+        - This code isn't perfect, and might contain some bugs.
+        - At least you won't have to suffer through 360p video as much!
 Version 2.2 Build 001
     - Fixes issue #142 - Default DASH audio track to the higher quality track.
         - This should get rid of an audio 'crackle' noise.
@@ -8,5 +12,3 @@ Version 2.1 Build 023
     - Fixes some Streamable links for reddit.
 Version 2.1 Build 022
     - Fixes bug with sorting of subreddits. Whoops.
-Version 2.1 Build 021
-    - Fixes Issue #139 - Adds a reddit preference to be able to sort your subreddits when you open the reddit feature.

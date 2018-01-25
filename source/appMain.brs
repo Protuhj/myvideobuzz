@@ -130,6 +130,7 @@ Sub ShowHomeScreen(params = invalid as Dynamic)
             return set_idx
         end function]
     MulticastInit(youtube)
+    UnicastInit(youtube)
     ' If "updatePending" exists in the registry, then we are booting from the update process (hopefully).
     updatePending = RegRead("updatePending")
     if ( updatePending = invalid ) then
@@ -170,12 +171,19 @@ Sub ShowHomeScreen(params = invalid as Dynamic)
     'ids.push("y60wDzZt8yg") ' Live Stream
     'ids.push("jLSEKjhD91c") ' FTG-15 Flight Test Video - fails for some reason
     'ids.push("cL8sG3SQmiw")  ' Hydraulic Press Channel - Intro audio sounds like garbage with track 139
+    'ids.push("z0Z6gljz9_Y")  ' Polyphia - Nightmare (vevo)
 
+    ' --- Play a specific video --- '
     'res = youtube.ExecBatchQueryV3( ids )
     'videos = youtube.newVideoListFromJSON( res.items )
     'metadata = GetVideoMetaData( videos )
     'result = video_get_qualities(metadata[0])
+    'if (result = 0) then
+    '    DisplayVideo(metadata[0])
+    'end if
+    ' --- End play a specific video --- '
 
+    ' Shows the list of videos
     'youtube.FetchVideoList( "ExecBatchQueryV3", "Vidyas", false, { contentArg: ids, noPages: true} )
 
     ' Testing out a specific playlist
