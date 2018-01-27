@@ -1,3 +1,6 @@
+Version 2.2 Build 003
+    - Cleaning up implementation of issue #144.
+    - Progress dialog shouldn't show up unless necessary.
 Version 2.2 Build 002
     - Fixes issue #144 - Allow higher quality, DASH streams to play.
         - This code isn't perfect, and might contain some bugs.
@@ -10,5 +13,3 @@ Version 2.2 Build 000
     - Current functionality (except for Twitch) seems stable.
 Version 2.1 Build 023
     - Fixes some Streamable links for reddit.
-Version 2.1 Build 022
-    - Fixes bug with sorting of subreddits. Whoops.

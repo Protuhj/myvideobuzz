@@ -68,16 +68,11 @@ Sub HandleStaleMessagePort( youtube as Dynamic )
     end if
 End Sub
 
-Sub CheckForMCast()
-    CheckForMCast_Impl()
-    CheckForUnicast()
-End Sub
-
 '********************************************************************
 ' Determines if someone on the network has tried to query for other videos on the LAN
 ' Listens for active video queries, and responds if necessary
 '********************************************************************
-Sub CheckForMCast_Impl()
+Sub CheckForMCast()
     youtube = getYoutube()
     if (youtube.mp_socket = invalid OR youtube.udp_socket = invalid) then
         print("CheckForMCast: Invalid Message Port or UDP Socket")

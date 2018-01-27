@@ -157,7 +157,6 @@ Sub ShowHomeScreen(params = invalid as Dynamic)
     ' Code to test specific video IDs
     ' Each of these is age-restricted.
     'ids = []
-    'https://www.youtube.com/watch?v=PRZjnGUGXBI
     'ids.push("5_yOGBzBTdc") ' Age restricted, fails? 16 May
     'ids.push("PRZjnGUGXBI") ' VEVO turd
     'ids.push("1EROmqidZQc")
@@ -190,7 +189,7 @@ Sub ShowHomeScreen(params = invalid as Dynamic)
     'youtube.FetchVideoList("GetPlaylistItems", "Blah", false, {contentArg: "PL30BFB50685A0252B"})
 
     ' Testing out a specific Twitch stream
-    ' newTwitchVideo( "totalbiscuit" )
+    ' newTwitchVideo( "datmodz" )
 
     ' Do main menu (required)
     uitkDoPosterMenu(menudata, screen, onselect)

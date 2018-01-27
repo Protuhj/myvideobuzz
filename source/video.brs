@@ -1238,6 +1238,7 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
     video["Streams"].Clear()
     isSSL = false
     prefs = getPrefs()
+    DASH_MAX_RETRIES = 1
     if (video["FailedDash"] <> invalid) then
         print "Failed dash was not invalid, playing mp4"
         doDASH = false
@@ -1247,7 +1248,7 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
     else if (video["Length"] = 0) then
         print "Not using DASH for live stream"
         doDASH = false
-    else if (doDASH = true AND retryCount > 1) then
+    else if ( doDASH = true AND retryCount > DASH_MAX_RETRIES ) then
         doDASH = false
         retryCount = 0
         print "Not using DASH due to too many retries"
@@ -1264,12 +1265,12 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
         'url = "http://www.youtube.com/get_video_info?el=info&video_id=" + video["ID"]
         if (retryCount = 0) then
             url = "http://www.youtube.com/get_video_info?el=detailpage&video_id=" + video["ID"]
-        else if (retryCount = 1) then
-            url = "https://www.youtube.com/embed/5_yOGBzBTdc" + video["ID"]
+            if (getYoutube().STSVal <> invalid) then
+                url = url + "&sts=" + getYoutube().STSVal
+            end if
+        else if (retryCount = DASH_MAX_RETRIES) then
+            url = "https://www.youtube.com/embed/" + video["ID"]
             isSSL = true
-        end if
-        if (getYoutube().STSVal <> invalid) then
-            url = url + "&sts=" + getYoutube().STSVal
         end if
     else if (retryCount = 0) then
         url = "http://www.youtube.com/get_video_info?el=detailpage&video_id=" + video["ID"]
@@ -1298,10 +1299,16 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
         ' If the get DASH MPD URL fails, then fall back to the old way.
         if ( retVal = invalid ) then
             ' invalid means the get_js_sm function reported that the STS value changed, retry.
-            getYouTubeMP4Url( video, doDASH, retryCount + 1 )
-        else if ( retVal.Count() = 0 ) then
-            print "Failed to find DASH MPD URL, attempting fall-back."
-            doDASH = false
+            getYouTubeMP4Url( video, doDASH, retryCount )
+        else if ( retVal.Count() = 0  ) then
+            if ( retryCount >= DASH_MAX_RETRIES ) then
+                print "Failed to find DASH MPD URL, attempting fall-back."
+                doDASH = false
+                retryCount = 0
+            else
+                ' Retry with second URL
+                getYouTubeMP4Url( video, doDASH, retryCount + 1 )
+            end if
         end if
     end if
     if (doDASH = false) then
@@ -1313,10 +1320,11 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
     return video["Streams"]
 End Function
 
-Function dashManifest( videoID as String, formatData, duration, waitDialog )
+Function dashManifest( videoID as String, formatData, duration )
+    waitDialog = invalid
     codecRegex = CreateObject("roRegex", "codecs=" + Quote() + "(.+)" + Quote(), "ig")
     MPDString = "<?xml version=" + Quote() + "1.0" + Quote() + " encoding=" + Quote() + "UTF-8" + Quote() + "?>"
-    MPDString += "<MPD xmlns:xsi=" + Quote() + "http://www.w3.org/2001/XMLSchema-instance" + Quote() + " xmlns=" + Quote() + "urn:mpeg:DASH:schema:MPD:2011" + Quote() + " xmlns:yt=" + Quote() + "http://youtube.com/yt/2012/10/10" + Quote() + " xsi:schemaLocation=" + Quote() + "urn:mpeg:DASH:schema:MPD:2011 DASH-MPD.xsd" + Quote() + " minBufferTime=" + Quote() + "PT1.500S" + Quote() + " profiles=" + Quote() + "urn:mpeg:dash:profile:isoff-on-demand:2011" + Quote() + " type=" + Quote() + "static" + Quote() + " mediaPresentationDuration=" + Quote() + "PT"
+    MPDString += "<MPD xmlns:xsi=" + Quote() + "http://www.w3.org/2001/XMLSchema-instance" + Quote() + " xmlns=" + Quote() + "urn:mpeg:DASH:schema:MPD:2011" + Quote() + " xmlns:yt=" + Quote() + "http://youtube.com/yt/2012/10/10" + Quote() + " xsi:schemaLocation=" + Quote() + "urn:mpeg:DASH:schema:MPD:2011 DASH-MPD.xsd" + Quote() + " minBufferTime=" + Quote() + "PT5.500S" + Quote() + " profiles=" + Quote() + "urn:mpeg:dash:profile:isoff-on-demand:2011" + Quote() + " type=" + Quote() + "static" + Quote() + " mediaPresentationDuration=" + Quote() + "PT"
     MPDString += duration
     MPDString += "S" + Quote() + ">"
     MPDString += "<Period duration=" + Quote() + "PT" + duration + "S" + Quote() + ">"
@@ -1330,9 +1338,11 @@ Function dashManifest( videoID as String, formatData, duration, waitDialog )
         if (audioData.s = invalid) then
             encodedURL = audioData.url.DecodeUri().DecodeUri().GetEntityEncode()
         else
+            waitDialog = ShowPleaseWait( "Creating DASH Manifest", "Decoding signature..." )
             signatureValObj = decodeEncryptedS( videoID, firstSDecrypt, audioData.s, waitDialog )
             firstSDecrypt = false
             if ( signatureValObj.didFail = true ) then
+                waitDialog.Close()
                 return signatureValObj
             else
                 encodedURL = audioData.url.DecodeUri().DecodeUri().GetEntityEncode() + "&amp;signature=" + signatureValObj.signature
@@ -1355,10 +1365,15 @@ Function dashManifest( videoID as String, formatData, duration, waitDialog )
                 if (format.s = invalid) then
                     videoURL = format.url.DecodeUri().DecodeUri().GetEntityEncode()
                 else
-                    waitDialog.UpdateText( "Decoding next video URL" )
+                    if ( waitDialog <> invalid ) then
+                        waitDialog.UpdateText( "Decoding next video URL" )
+                    else
+                        waitDialog = ShowPleaseWait( "Creating DASH Manifest", "Decoding signature..." )
+                    end if
                     signatureValObj = decodeEncryptedS( videoID, firstSDecrypt, format.s, waitDialog )
                     firstSDecrypt = false
                     if ( signatureValObj.didFail = true ) then
+                        waitDialog.Close()
                         return signatureValObj
                     else
                         videoURL = format.url.DecodeUri().DecodeUri().GetEntityEncode() + "&amp;signature=" + signatureValObj.signature
@@ -1394,6 +1409,9 @@ Function dashManifest( videoID as String, formatData, duration, waitDialog )
         print "No audio data found!"
         retObj.didFail = true
         retObj.mpdString = invalid
+    end if
+    if ( waitDialog <> invalid ) then
+        waitDialog.Close()
     end if
     return retObj
 End Function
@@ -1439,7 +1457,7 @@ Function decodeEncryptedS( videoID as String, first as Boolean, sVal as String, 
             functionMap["stsValChanged"] = invalid
             getYoutube().funcmap = functionMap
             retObj.didFail = true
-            print "STS value has changed"
+            print "STS value has changed :: decodeEncryptedS"
             retObj.stsValChanged = true
             if (pleaseWaitDlg <> invalid) then
                 pleaseWaitDlg.UpdateText( "STS value has changed, going to retry." )
@@ -1456,7 +1474,9 @@ Function decodeEncryptedS( videoID as String, first as Boolean, sVal as String, 
 End Function
 
 Function createDASHManifest( videoID, htmlString )
-    manifestObj = invalid
+    manifestObj = {}
+    ' Default to true in case something in this function fails
+    manifestObj.didFail = true
     durRegex = CreateObject("roRegex", "dur%253D([\d\.]+)", "ig")
     commaRegex = CreateObject("roRegex", "%2C", "ig")
     slashRegex = CreateObject("roRegex", "%2F", "ig")
@@ -1464,7 +1484,6 @@ Function createDASHManifest( videoID, htmlString )
     ampersandRegex = CreateObject("roRegex", "%26", "ig")
     urlEncodedRegex = CreateObject("roRegex", "adaptive_fmts=([^(" + Chr(34) + "|&|$)]*)", "ig")
     durMatch = durRegex.Match( htmlString )
-    pleaseWaitDlg = ShowPleaseWait( "Creating DASH Manifest", "Downloading webpage..." )
     if ( durMatch.Count() > 1 ) then
         durationFromInfo = durMatch[1]
         print "Found duration: " + durationFromInfo
@@ -1485,8 +1504,7 @@ Function createDASHManifest( videoID, htmlString )
                     end for
                     formatData[ settings.itag ] = settings
                 end for
-                manifestObj = dashManifest( videoID, formatData, durationFromInfo, pleaseWaitDlg )
-                pleaseWaitDlg.close()
+                manifestObj = dashManifest( videoID, formatData, durationFromInfo )
             else
                 print "Empty adaptiveFmtsString"
             end if
@@ -1504,7 +1522,6 @@ Function getYouTubeDASHMPD( htmlString as String, video as Object, isSSL as Bool
 
     ' When true, tells the calling function to retry, since the STS value has changed
     stsValChanged = false
-    pleaseWaitDlg = invalid
     if ( len( htmlString ) > 0 ) then
         getYoutube().dashManifestContents = invalid
         manifestObj = createDASHManifest( video["ID"], htmlString )
@@ -1527,9 +1544,12 @@ Function getYouTubeDASHMPD( htmlString as String, video as Object, isSSL as Bool
             end if
         end if
     end if
-    if ( manifestObj <> invalid AND manifestObj.stsValChanged = invalid ) then
+    if ( manifestObj <> invalid AND (manifestObj.stsValChanged = invalid OR manifestObj.staValChanged = false ) ) then
+        ' If the STS value hasn't changed, return the array, even if it's empty.
         return video["Streams"]
     else
+        ' If the STS value has changed, return invalid
+        print "Detected STS value change, returning invalid in getYouTubeDASHMPD"
         return invalid
     end if
 End Function
