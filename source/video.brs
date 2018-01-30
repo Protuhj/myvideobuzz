@@ -1489,32 +1489,44 @@ Function createDASHManifest( videoID, htmlString )
     ampersandRegex = CreateObject("roRegex", "%26", "ig")
     urlEncodedRegex = CreateObject("roRegex", "adaptive_fmts=([^(" + Chr(34) + "|&|$)]*)", "ig")
     durMatch = durRegex.Match( htmlString )
+    durationFromInfo = invalid
     if ( durMatch.Count() > 1 ) then
-        durationFromInfo = durMatch[1]
-        print "Found duration: " + durationFromInfo
-        adaptiveFmtsStringMatch = urlEncodedRegex.Match( htmlString )
-        if ( adaptiveFmtsStringMatch.Count() > 1 ) then
-            formatData = {}
-            if (not(strTrim(adaptiveFmtsStringMatch[1]) = "")) then
-                adaptiveFmtsString = adaptiveFmtsStringMatch[1]
-                commaSplit = commaRegex.Split( adaptiveFmtsString )
-                for each commaItem in commaSplit
-                    ' print "##############"
-                    settings = {}
-                    ampersandSplit = ampersandRegex.split( commaItem )
-                    for each ampersandItem in ampersandSplit
-                        ' print "ampersandItem: " + ampersandItem
-                        equalsSplit = equalsRegex.split( ampersandItem )
-                        settings[equalsSplit[0]] = equalsSplit[1]
+        maxDur = 0.0
+        durValues = MatchAll( durRegex, htmlString )
+        for each durVal in durValues
+            if ( durVal.ToFloat() > maxDur ) then
+                maxDur = durVal.ToFloat()
+                durationFromInfo = durVal
+                print "Set duration to: " + durationFromInfo
+            end if
+        end for
+        if ( durationFromInfo <> invalid ) then
+            adaptiveFmtsStringMatch = urlEncodedRegex.Match( htmlString )
+            if ( adaptiveFmtsStringMatch.Count() > 1 ) then
+                formatData = {}
+                if (not(strTrim(adaptiveFmtsStringMatch[1]) = "")) then
+                    adaptiveFmtsString = adaptiveFmtsStringMatch[1]
+                    commaSplit = commaRegex.Split( adaptiveFmtsString )
+                    for each commaItem in commaSplit
+                        ' print "##############"
+                        settings = {}
+                        ampersandSplit = ampersandRegex.split( commaItem )
+                        for each ampersandItem in ampersandSplit
+                            ' print "ampersandItem: " + ampersandItem
+                            equalsSplit = equalsRegex.split( ampersandItem )
+                            settings[equalsSplit[0]] = equalsSplit[1]
+                        end for
+                        formatData[ settings.itag ] = settings
                     end for
-                    formatData[ settings.itag ] = settings
-                end for
-                manifestObj = dashManifest( videoID, formatData, durationFromInfo )
+                    manifestObj = dashManifest( videoID, formatData, durationFromInfo )
+                else
+                    print "Empty adaptiveFmtsString"
+                end if
             else
-                print "Empty adaptiveFmtsString"
+                print "Adaptive formats regex failed"
             end if
         else
-            print "Adaptive formats regex failed"
+            print "Failed to find valid duration!"
         end if
     else
         print "Duration regex failed"

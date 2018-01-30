@@ -171,6 +171,7 @@ Sub ShowHomeScreen(params = invalid as Dynamic)
     'ids.push("jLSEKjhD91c") ' FTG-15 Flight Test Video - fails for some reason
     'ids.push("cL8sG3SQmiw")  ' Hydraulic Press Channel - Intro audio sounds like garbage with track 139
     'ids.push("z0Z6gljz9_Y")  ' Polyphia - Nightmare (vevo)
+    'ids.push("mnzmUyHr1S8")  ' Returns '0.000' for first duration regular expression hit
 
     ' --- Play a specific video --- '
     'res = youtube.ExecBatchQueryV3( ids )
