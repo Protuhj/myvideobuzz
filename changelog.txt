@@ -1,3 +1,5 @@
+Version 2.2 Build 005
+    - Allows Twitch streams to work again, which fixes issue #143.
 Version 2.2 Build 004
     - Added option on the '*' menu to play audio only
         - This will only work on YouTube videos with valid DASH streams (vast majority)
@@ -15,5 +17,3 @@ Version 2.2 Build 001
 Version 2.2 Build 000
     - Official release of 2.2
     - Current functionality (except for Twitch) seems stable.
-Version 2.1 Build 023
-    - Fixes some Streamable links for reddit.

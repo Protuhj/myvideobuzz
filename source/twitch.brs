@@ -108,6 +108,7 @@ Sub newTwitchVideo( channel as String )
     'print "Sig: " ; result.json.sig
     'print "Token: " ; result.json.token
     'QueryForJson( "http://usher.twitch.tv/select/" + channel + ".json?nauthsig=" + result.json.sig +"&nauth=" + result.json.token )'+ "&allow_source=true" )
+    getYoutube().dashManifestContents = invalid
     if ( result <> invalid AND result.status = 200 ) then
         meta                   = {}
         meta["Author"]                 = channel
@@ -130,9 +131,20 @@ Sub newTwitchVideo( channel as String )
         ' Set the PlayStart sufficiently large so it starts at 'Live' position
         meta["PlayStart"]              = 500000
         meta["SwitchingStrategy"]      = "full-adaptation"
-        meta["Streams"].Push({url: "http://usher.twitch.tv/api/channel/hls/" + channel + ".m3u8?sig=" + result.json.sig +"&token=" + result.json.token + "&allow_source=true&allow_spectre=false", bitrate: 0, quality: false, contentid: -1})
-    '    print "Twitch URL: " + meta["Streams"][0].url
-        DisplayVideo(meta)
+        hlsUrl = "http://usher.twitch.tv/api/channel/hls/" + channel + ".m3u8?sig=" + result.json.sig +"&token=" + result.json.token + "&allow_source=true&allow_spectre=false"
+        headers = { }
+        headers["User-Agent"] = getConstants().USER_AGENT
+        http = NewHttp( hlsUrl )
+        hlsText = http.getToStringWithTimeout(10, headers)
+        if ( http.status = 200 AND hlsText <> invalid ) then
+            ' The old Roku code doesn't handle the decimal value for the codec description, so replace with the hex version
+            hlsText = Substitute( hlsText, "77.31", "4d401f" )
+            getYoutube().dashManifestContents = hlsText
+            meta["Streams"].Push({url: "http://localhost:6789", bitrate: 0, quality: false, contentid: -1})
+            DisplayVideo(meta)
+        else
+            ShowErrorDialog( "Error querying Twitch (Code: " + tostr( http.status ) + ")", "Twitch Error" )
+        end if
     else
         ShowErrorDialog( "Error querying Twitch (Code: " + tostr( result.status ) + ")", "Twitch Error" )
     end if

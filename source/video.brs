@@ -1171,10 +1171,10 @@ Function DisplayVideo(content As Object)
     video.show()
     ret = -1
     waitTime = 0
-    isDASH = false
-    if (content["StreamFormat"] = "dash") then
+    isLocalServer = false
+    if ( yt.dashManifestContents <> invalid ) then
         waitTime = 1000
-        isDASH = true
+        isLocalServer = true
     end if
     while (true)
         msg = wait(waitTime, video.GetMessagePort())
@@ -1226,12 +1226,14 @@ Function DisplayVideo(content As Object)
             else
                 'print "Unknown event: "; msg.GetType(); " msg: "; msg.GetMessage()
             end if
-        else if (msg = invalid AND isDASH = true) then
+        else if (msg = invalid AND isLocalServer = true) then
             CheckForUnicast()
         end if
     end while
     ' Add the video to history
     yt.AddHistory(content)
+    ' Reset here so we don't attempt to play the stale contents again
+    yt.dashManifestContents = invalid
     return ret
 End Function
 
@@ -1723,6 +1725,7 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                 video["StreamFormat"]      = "hls"
                 'video["SwitchingStrategy"] = "unaligned-segments"
                 video["SwitchingStrategy"] = "full-adaptation"
+                'print ("HLS URL: " + urlDecoded)
                 video["Streams"].Push({url: urlDecoded, bitrate: 0, quality: false, contentid: -1})
                 video["SSL"] = isSSL
             end if
