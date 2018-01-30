@@ -1,3 +1,7 @@
+Version 2.2 Build 004
+    - Added option on the '*' menu to play audio only
+        - This will only work on YouTube videos with valid DASH streams (vast majority)
+        - If you're trying to save bandwidth, and don't care about the video contents, this could help.
 Version 2.2 Build 003
     - Cleaning up implementation of issue #144.
     - Progress dialog shouldn't show up unless necessary.

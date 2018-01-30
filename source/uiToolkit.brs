@@ -640,7 +640,16 @@ Function VListOptionDialog( videoObj as Object, isReddit = false as Boolean ) as
     doneId = 2
     detailsId = 3
     playlistId = 4
+    audioOnlyId = 5
     dialog.addButton( sleepId, "Set Sleep Timer" )
+    audioButtonTextBase = "Play Audio Only? (If possible): "
+    audioButtonText = audioButtonTextBase
+    if ( m.youtube.audio_only ) then
+        audioButtonText += " Yes"
+    else
+        audioButtonText += " No"
+    end if
+    dialog.addButton( audioOnlyId, audioButtonText )
     if ( videoObj <> invalid AND videoObj["Description"] <> invalid AND len( videoObj["Description"] ) > 0 ) then
         dialog.addButton( detailsId, "View Full Description" )
     end if
@@ -704,6 +713,15 @@ Function VListOptionDialog( videoObj as Object, isReddit = false as Boolean ) as
                         updateVListDialogText( dialog, true, isReddit )
                     end if
                     return 1 ' Re-open the options
+                else if ( buttonPressed = audioOnlyId ) then ' Audio Only
+                    m.youtube.audio_only = NOT(m.youtube.audio_only)
+                    audioButtonText = audioButtonTextBase
+                    if ( m.youtube.audio_only ) then
+                        audioButtonText += " Yes"
+                    else
+                        audioButtonText += " No"
+                    end if
+                    dialog.UpdateButton( audioOnlyId, audioButtonText )
                 else if ( buttonPressed = doneId ) then
                     dialog.Close()
                     exit while
@@ -730,8 +748,8 @@ Sub updateVListDialogText( dialog as Object, isUpdate as Boolean, isReddit as Bo
     if ( m.youtube.sleep_timer <> -100 ) then
         sleepText = get_length_as_human_readable( m.youtube.sleep_timer )
     end if
-    dialogText = ""
-    dialogText = dialogText + "Sleep Timer: " + sleepText
+
+    dialogText = "Sleep Timer: " + sleepText
     if ( isReddit = true ) then
         redditFeedType = firstValid( getEnumValueForType( getConstants().eREDDIT_QUERIES, m.prefs.getPrefValue( m.prefs.RedditFeed.key ) ), "Hot" )
         redditFilterType = firstValid( getEnumValueForType( getConstants().eREDDIT_FILTERS, m.prefs.getPrefValue( m.prefs.RedditFilter.key ) ), "All" )

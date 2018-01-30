@@ -189,6 +189,7 @@ Function InitYouTube() As Object
     this.patterns = patterns
 
     this.sleep_timer = -100
+    this.audio_only = false
     this.WhatsNewLastQueried% = 0
     this.WhatsNewVideos = invalid
     return this
@@ -1357,48 +1358,50 @@ Function dashManifest( videoID as String, formatData, duration )
         MPDString += "<SegmentBase indexRange=" + Quote() + audioData.index + Quote() + " indexRangeExact=" + Quote() + "true" + Quote() + ">"
         MPDString += "<Initialization range=" + Quote() + audioData.init + Quote() + "/>"
         MPDString += "</SegmentBase></Representation></AdaptationSet>"
-        for each formatKey in formatData
-            setID = 1
-            format = formatData[ formatKey ]
-            if ( format.type.InStr( "audio" ) = -1 ) then
-                ' Check for encoded signature
-                if (format.s = invalid) then
-                    videoURL = format.url.DecodeUri().DecodeUri().GetEntityEncode()
-                else
-                    if ( waitDialog <> invalid ) then
-                        waitDialog.UpdateText( "Decoding next video URL" )
+        setID = 1
+        if ( getYoutube().audio_only = false ) then
+            for each formatKey in formatData
+                format = formatData[ formatKey ]
+                if ( format.type.InStr( "audio" ) = -1 ) then
+                    ' Check for encoded signature
+                    if (format.s = invalid) then
+                        videoURL = format.url.DecodeUri().DecodeUri().GetEntityEncode()
                     else
-                        waitDialog = ShowPleaseWait( "Creating DASH Manifest", "Decoding signature..." )
+                        if ( waitDialog <> invalid ) then
+                            waitDialog.UpdateText( "Decoding next video URL" )
+                        else
+                            waitDialog = ShowPleaseWait( "Creating DASH Manifest", "Decoding signature..." )
+                        end if
+                        signatureValObj = decodeEncryptedS( videoID, firstSDecrypt, format.s, waitDialog )
+                        firstSDecrypt = false
+                        if ( signatureValObj.didFail = true ) then
+                            waitDialog.Close()
+                            return signatureValObj
+                        else
+                            videoURL = format.url.DecodeUri().DecodeUri().GetEntityEncode() + "&amp;signature=" + signatureValObj.signature
+                        end if
                     end if
-                    signatureValObj = decodeEncryptedS( videoID, firstSDecrypt, format.s, waitDialog )
-                    firstSDecrypt = false
-                    if ( signatureValObj.didFail = true ) then
-                        waitDialog.Close()
-                        return signatureValObj
-                    else
-                        videoURL = format.url.DecodeUri().DecodeUri().GetEntityEncode() + "&amp;signature=" + signatureValObj.signature
-                    end if
+                    'print "Video Encoded URL is: " + videoURL
+                    formatTypeEscaped = format.type.Unescape().Unescape()
+                    codecStr = codecRegex.Match( formatTypeEscaped )[1]
+                    lenStr = toStr( format.clen.ToInt() / 8 )
+                    resolutionSplit = format.size.Split( "x" )
+                    widthStr = resolutionSplit[0]
+                    heightStr = resolutionSplit[1]
+                    bandwidthStr = toStr( format.bitrate.ToInt() / 8 )
+                    MPDString += "<AdaptationSet id=" + Quote() + toStr( setID ) + Quote() + " mimeType=" + Quote() + formatTypeEscaped.split( ";" )[0] + Quote() + " subsegmentAlignment=" + Quote() + "true" + Quote() + ">"
+                    MPDString += "<Role schemeIdUri=" + Quote() + "urn:mpeg:DASH:role:2011" + Quote() + " value=" + Quote() + "main" + Quote() + "/>"
+                    MPDString += "<Representation id=" + Quote() + format.itag + Quote() + " codecs=" + Quote() + codecStr + Quote() + " width=" + Quote() + widthStr + Quote() + " height=" + Quote() + heightStr + Quote() + " startWithSAP=" + Quote() + "1" + Quote() + " maxPlayoutRate=" + Quote() + "1" + Quote() + " bandwidth=" + Quote() + bandwidthStr + Quote() + " frameRate=" + Quote() + format.fps + Quote() + ">"
+                    MPDString += "<BaseURL yt:contentLength=" + Quote() + lenStr + Quote() + ">" + videoURL + "</BaseURL>"
+                    MPDString += "<SegmentBase indexRange=" + Quote() + format.index + Quote() + " indexRangeExact=" + Quote() + "true" + Quote() + ">"
+                    MPDString += "<Initialization range=" + Quote() + format.init + Quote() + "/>"
+                    MPDString += "</SegmentBase></Representation></AdaptationSet>"
+                    setID += 1
                 end if
-                'print "Video Encoded URL is: " + videoURL
-                formatTypeEscaped = format.type.Unescape().Unescape()
-                codecStr = codecRegex.Match( formatTypeEscaped )[1]
-                lenStr = toStr( format.clen.ToInt() / 8 )
-                resolutionSplit = format.size.Split( "x" )
-                widthStr = resolutionSplit[0]
-                heightStr = resolutionSplit[1]
-                bandwidthStr = toStr( format.bitrate.ToInt() / 8 )
-                MPDString += "<AdaptationSet id=" + Quote() + toStr( setID ) + Quote() + " mimeType=" + Quote() + formatTypeEscaped.split( ";" )[0] + Quote() + " subsegmentAlignment=" + Quote() + "true" + Quote() + ">"
-                MPDString += "<Role schemeIdUri=" + Quote() + "urn:mpeg:DASH:role:2011" + Quote() + " value=" + Quote() + "main" + Quote() + "/>"
-                MPDString += "<Representation id=" + Quote() + format.itag + Quote() + " codecs=" + Quote() + codecStr + Quote() + " width=" + Quote() + widthStr + Quote() + " height=" + Quote() + heightStr + Quote() + " startWithSAP=" + Quote() + "1" + Quote() + " maxPlayoutRate=" + Quote() + "1" + Quote() + " bandwidth=" + Quote() + bandwidthStr + Quote() + " frameRate=" + Quote() + format.fps + Quote() + ">"
-                MPDString += "<BaseURL yt:contentLength=" + Quote() + lenStr + Quote() + ">" + videoURL + "</BaseURL>"
-                MPDString += "<SegmentBase indexRange=" + Quote() + format.index + Quote() + " indexRangeExact=" + Quote() + "true" + Quote() + ">"
-                MPDString += "<Initialization range=" + Quote() + format.init + Quote() + "/>"
-                MPDString += "</SegmentBase></Representation></AdaptationSet>"
-                setID += 1
-            end if
-        end for
+            end for
+        end if
         MPDString += "</Period></MPD>"
-        if ( setID = 1 ) then
+        if ( setID = 1 AND getYoutube().audio_only = false ) then
             print "No video streams found?"
             retObj.didFail = true
             retObj.mpdString = invalid
