@@ -1,3 +1,6 @@
+Version 2.2 Build 007
+    - Ensure an invalid result from YouTube won't crash the channel.
+        - (Issue #125, thanks to youvegottabecrazy!)
 Version 2.2 Build 006
     - Fixes a case where a 0 duration video would try to play and immediately stop (Issue #146)
 Version 2.2 Build 005
