@@ -817,7 +817,7 @@ Function newVideoListFromJSON_impl(jsonList As Object) As Object
     return videolist
 End Function
 
-Function newVideoFromJSON_impl(jsonVideoItem as Object) As Object
+Function newVideoFromJSON_impl(jsonVideoItem as Object) As Dynamic
     if jsonVideoItem.Lookup("contentDetails") = invalid then 
         return invalid
     end if

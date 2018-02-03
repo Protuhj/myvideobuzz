@@ -1,3 +1,7 @@
+Version 2.2 Build 008
+    - Allow you to enter your Twitch user name to be able to show your followed channels.
+    - You can edit your username (case doesn't matter) in the Twitch settings page.
+    - Addresses Issue #147
 Version 2.2 Build 007
     - Ensure an invalid result from YouTube won't crash the channel.
         - (Issue #125, thanks to youvegottabecrazy!)

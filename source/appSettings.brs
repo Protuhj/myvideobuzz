@@ -74,6 +74,12 @@ Function LoadPreferences() as Object
         prefType: "enum",
         enumType: consts.eENABLED_DISABLED
         })
+    prefs.TwitchUserName = createPref( { prefName: "Twitch User Name",
+        prefDesc: "Your Twitch user name, if you'd like to view your followed channels.",
+        prefDefault: "",
+        prefKey: consts.pTWITCH_USER_NAME,
+        prefType: "string",
+        })
 
     prefs.RedditFeed = createPref( { prefName: "Reddit Feed",
         prefDesc: "Which reddit feed to query?",
@@ -818,6 +824,7 @@ Function LoadConstants() as Object
     ' Property Keys
     this.pREDDIT_ENABLED        = "RedditEnabled"
     this.pTWITCH_ENABLED        = "TwitchEnabled"
+    this.pTWITCH_USER_NAME      = "TwitchUserName"
     this.pVIDEO_QUALITY         = "VideoQuality"
     this.pREDDIT_FEED           = "RedditFeed"
     this.pREDDIT_FILTER         = "RedditFilter"

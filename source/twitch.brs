@@ -25,13 +25,19 @@ Sub ViewTwitch(youtube as Object, urlToQuery = "https://api.twitch.tv/kraken/gam
 
         ' Now add the 'More results' button
         if ( rsp.json._links <> invalid AND rsp.json._links.next <> invalid ) then
-                gameList.Push({shortDescriptionLine1: "More Results", action: "next", pageURL: rsp.json._links.next, HDPosterUrl:"pkg:/images/icon_next_episode.jpg", SDPosterUrl:"pkg:/images/icon_next_episode.jpg"})
+            gameList.Push({shortDescriptionLine1: "More Results", action: "next", pageURL: rsp.json._links.next, HDPosterUrl:"pkg:/images/icon_next_episode.jpg", SDPosterUrl:"pkg:/images/icon_next_episode.jpg"})
+        end if
+        twitchUserName = getPrefs().getPrefValue( getConstants().pTWITCH_USER_NAME )
+        if ( Len( twitchUserName.Trim() ) > 0 ) then
+            gameList.Unshift({shortDescriptionLine1: "Followed Channels", special: "followed", username: twitchUserName, HDPosterUrl:"pkg:/images/YourSubscriptions.jpg", SDPosterUrl:"pkg:/images/YourSubscriptions.jpg"})
         end if
         ' gameList.Unshift({shortDescriptionLine1: "Back", action: "prev", HDPosterUrl:"pkg:/images/icon_prev_episode.jpg", SDPosterUrl:"pkg:/images/icon_prev_episode.jpg"})
         onselect = [1, gameList, youtube,
         function(menu, youtube, set_idx)
             if (menu[set_idx]["action"] <> invalid) then
                 ViewTwitch(youtube, menu[set_idx]["pageURL"] )
+            else if ( menu[set_idx]["special"] = "followed" ) then
+                showUserFollowed( menu[set_idx]["username"] )
             else
                 ViewTwitchStreams( menu[set_idx]["TitleSeason"] )
             end if
@@ -44,12 +50,34 @@ Sub ViewTwitch(youtube as Object, urlToQuery = "https://api.twitch.tv/kraken/gam
 End Sub
 
 '******************************************************************************
+' Function to show a user's followed channels.
+' @param userName The user name of the user to get followed channels for
+'******************************************************************************
+Sub showUserFollowed( userName as String )
+    urlToQuery = "https://api.twitch.tv/kraken/users/" + userName.Trim() + "/follows/channels?limit=50&sortby=last_broadcast"
+    rsp = QueryForJson( urlToQuery + GetAddendum())
+    if ( rsp.status = 200 ) then
+        if ( rsp.json.follows = invalid OR rsp.json.follows.Count() = 0 ) then
+            ShowErrorDialog( "Found no followed channels for user: '" + userName + "'", "Error" )
+        else
+            channelsList = ""
+            for each entry in rsp.json.follows
+                channelsList += entry.channel.name + ","
+            next
+            ViewTwitchStreams( "Followed Channels", "https://api.twitch.tv/kraken/streams/?limit=50&channel=" + channelsList + GetAddendum() )
+        end if
+    else
+        ShowErrorDialog( "Error querying Twitch (Code: " + tostr( rsp.status ) + ") Ensure you entered your username (" + userName + ") correctly!", "Twitch Error" )
+    end if
+End Sub
+
+'******************************************************************************
 ' Main function to begin displaying Twitch content
 ' @param youtube the current youtube instance
 ' @param url an optional URL with the multireddit to query, or the full link to parse. This is used when hitting the 'More Results' or 'Back' buttons on the video list page.
 '     multireddits look like this: videos+funny+humor for /r/videos, /r/funny, and /r/humor
 '******************************************************************************
-Sub ViewTwitchStreams(gameName as String, urlToQuery = invalid as dynamic )
+Sub ViewTwitchStreams(gameName as String, urlToQuery = invalid as dynamic, totalDisplayed = 0 as dynamic )
     'https://api.twitch.tv/kraken/games/top?hls=true
     title = gameName
     screen = uitkPreShowPosterMenu( "flat-episodic-16x9", title )
@@ -61,17 +89,20 @@ Sub ViewTwitchStreams(gameName as String, urlToQuery = invalid as dynamic )
     
     if ( rsp.status = 200 ) then
         streamList = NewTwitchStreamList( rsp.json )
+        totalDisplayed += streamList.Count()
 
         ' Now add the 'More results' button
         if ( rsp.json._links <> invalid AND rsp.json._links.next <> invalid ) then
-            streamList.Push({shortDescriptionLine1: "More Results", action: "next", pageURL: URLDecode(rsp.json._links.next), HDPosterUrl:"pkg:/images/icon_next_episode.jpg", SDPosterUrl:"pkg:/images/icon_next_episode.jpg"})
+            if ( totalDisplayed < rsp.json._total ) then
+                streamList.Push({shortDescriptionLine1: "More Results", action: "next", displayedSoFar: totalDisplayed, pageURL: URLDecode(rsp.json._links.next), HDPosterUrl:"pkg:/images/icon_next_episode.jpg", SDPosterUrl:"pkg:/images/icon_next_episode.jpg"})
+            end if
         end if
         ' gameList.Unshift({shortDescriptionLine1: "Back", action: "prev", HDPosterUrl:"pkg:/images/icon_prev_episode.jpg", SDPosterUrl:"pkg:/images/icon_prev_episode.jpg"})
         onselect = [1, streamList, gameName,
         function(menu, gameName, set_idx)
             if (menu[set_idx]["action"] <> invalid) then
                 plusRegex = CreateObject( "roRegex", "\+", "i" )
-                ViewTwitchStreams(gameName, plusRegex.ReplaceAll( menu[set_idx]["pageURL"], "%20" ) )
+                ViewTwitchStreams(gameName, plusRegex.ReplaceAll( menu[set_idx]["pageURL"], "%20" ), menu[set_idx]["displayedSoFar"] )
             else
                 newTwitchVideo( menu[set_idx]["ID"] )
             end if
@@ -208,6 +239,12 @@ Sub EditTwitchSettings()
             HDPosterUrl:"pkg:/images/twitch.jpg",
             SDPosterUrl:"pkg:/images/twitch.jpg",
             prefData: getPrefs().getPrefData( getConstants().pTWITCH_ENABLED )
+        },
+        {
+            Title: "Your Twitch User Name",
+            HDPosterUrl:"pkg:/images/icon_key.jpg",
+            SDPosterUrl:"pkg:/images/icon_key.jpg",
+            prefData: getPrefs().getPrefData( getConstants().pTWITCH_USER_NAME )
         }
     ]
 
@@ -222,11 +259,11 @@ Sub onplay_callback_Twitch(theVideo as Object)
     newTwitchVideo( theVideo["ID"] )
 End Sub
 
-Function GetAddendum() as Dynamic
+Function GetAddendum( num = 61 as Integer ) as Dynamic
     retVal2 = ""
     retVal = []
     base = 99
-    retVal.Push( base - 61 )
+    retVal.Push( base - num )
     retVal.Push( base )
     base = base + 9
     retVal.Push( base )
