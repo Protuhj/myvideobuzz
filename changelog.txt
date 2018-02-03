@@ -1,3 +1,6 @@
+Version 2.2 Build 009
+    - Attempt to reduce Twitch sync issues.
+    - Addresses Issue #148
 Version 2.2 Build 008
     - Allow you to enter your Twitch user name to be able to show your followed channels.
     - You can edit your username (case doesn't matter) in the Twitch settings page.
@@ -20,6 +23,3 @@ Version 2.2 Build 002
     - Fixes issue #144 - Allow higher quality, DASH streams to play.
         - This code isn't perfect, and might contain some bugs.
         - At least you won't have to suffer through 360p video as much!
-Version 2.2 Build 001
-    - Fixes issue #142 - Default DASH audio track to the higher quality track.
-        - This should get rid of an audio 'crackle' noise.

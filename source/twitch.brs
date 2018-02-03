@@ -162,7 +162,7 @@ Sub newTwitchVideo( channel as String )
         ' Set the PlayStart sufficiently large so it starts at 'Live' position
         meta["PlayStart"]              = 500000
         meta["SwitchingStrategy"]      = "full-adaptation"
-        hlsUrl = "http://usher.twitch.tv/api/channel/hls/" + channel + ".m3u8?sig=" + result.json.sig +"&token=" + result.json.token + "&allow_source=true&allow_spectre=false"
+        hlsUrl = "http://usher.twitch.tv/api/channel/hls/" + channel + ".m3u8?sig=" + result.json.sig +"&token=" + result.json.token + "&allow_spectre=false"
         headers = { }
         headers["User-Agent"] = getConstants().USER_AGENT
         http = NewHttp( hlsUrl )

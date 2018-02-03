@@ -190,7 +190,7 @@ Sub ShowHomeScreen(params = invalid as Dynamic)
     'youtube.FetchVideoList("GetPlaylistItems", "Blah", false, {contentArg: "PL30BFB50685A0252B"})
 
     ' Testing out a specific Twitch stream
-    ' newTwitchVideo( "datmodz" )
+    ' newTwitchVideo( "giantwaffle" )
 
     ' Do main menu (required)
     uitkDoPosterMenu(menudata, screen, onselect)
