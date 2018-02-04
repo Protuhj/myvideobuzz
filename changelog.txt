@@ -1,3 +1,5 @@
+Version 2.2 Build 010
+    - Fixed a crash if no followed Twitch streams are live.
 Version 2.2 Build 009
     - Attempt to reduce Twitch sync issues.
     - Addresses Issue #148

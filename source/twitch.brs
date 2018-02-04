@@ -91,24 +91,32 @@ Sub ViewTwitchStreams(gameName as String, urlToQuery = invalid as dynamic, total
         streamList = NewTwitchStreamList( rsp.json )
         totalDisplayed += streamList.Count()
 
-        ' Now add the 'More results' button
-        if ( rsp.json._links <> invalid AND rsp.json._links.next <> invalid ) then
-            if ( totalDisplayed < rsp.json._total ) then
-                streamList.Push({shortDescriptionLine1: "More Results", action: "next", displayedSoFar: totalDisplayed, pageURL: URLDecode(rsp.json._links.next), HDPosterUrl:"pkg:/images/icon_next_episode.jpg", SDPosterUrl:"pkg:/images/icon_next_episode.jpg"})
-            end if
-        end if
-        ' gameList.Unshift({shortDescriptionLine1: "Back", action: "prev", HDPosterUrl:"pkg:/images/icon_prev_episode.jpg", SDPosterUrl:"pkg:/images/icon_prev_episode.jpg"})
-        onselect = [1, streamList, gameName,
-        function(menu, gameName, set_idx)
-            if (menu[set_idx]["action"] <> invalid) then
-                plusRegex = CreateObject( "roRegex", "\+", "i" )
-                ViewTwitchStreams(gameName, plusRegex.ReplaceAll( menu[set_idx]["pageURL"], "%20" ), menu[set_idx]["displayedSoFar"] )
+        if ( totalDisplayed > 0 ) then
+            if ( streamList.Count() > 0 ) then
+                ' Now add the 'More results' button
+                if ( rsp.json._links <> invalid AND rsp.json._links.next <> invalid ) then
+                    if ( totalDisplayed < rsp.json._total ) then
+                        streamList.Push({shortDescriptionLine1: "More Results", action: "next", displayedSoFar: totalDisplayed, pageURL: URLDecode(rsp.json._links.next), HDPosterUrl:"pkg:/images/icon_next_episode.jpg", SDPosterUrl:"pkg:/images/icon_next_episode.jpg"})
+                    end if
+                end if
+                ' gameList.Unshift({shortDescriptionLine1: "Back", action: "prev", HDPosterUrl:"pkg:/images/icon_prev_episode.jpg", SDPosterUrl:"pkg:/images/icon_prev_episode.jpg"})
+                onselect = [1, streamList, gameName,
+                function(menu, gameName, set_idx)
+                    if (menu[set_idx]["action"] <> invalid) then
+                        plusRegex = CreateObject( "roRegex", "\+", "i" )
+                        ViewTwitchStreams(gameName, plusRegex.ReplaceAll( menu[set_idx]["pageURL"], "%20" ), menu[set_idx]["displayedSoFar"] )
+                    else
+                        newTwitchVideo( menu[set_idx]["ID"] )
+                    end if
+                    return set_idx
+                end function]
+                uitkDoPosterMenu( streamList, screen, onselect, onplay_callback_Twitch )
             else
-                newTwitchVideo( menu[set_idx]["ID"] )
+                ShowErrorDialog( "No more live streams!", "Info" )
             end if
-            return set_idx
-        end function]
-        uitkDoPosterMenu( streamList, screen, onselect, onplay_callback_Twitch )
+        else
+            ShowErrorDialog( "No followed streams are currently live!", "No Live Channels" )
+        end if
     else
         ShowErrorDialog( "Error querying Twitch (Code: " + tostr( rsp.status ) + ")", "Twitch Error" )
     end if
