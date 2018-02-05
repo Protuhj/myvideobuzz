@@ -1743,6 +1743,7 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                 'video["SwitchingStrategy"] = "unaligned-segments"
                 video["SwitchingStrategy"] = "full-adaptation"
                 'print ("HLS URL: " + urlDecoded)
+                video["MaxBandwidth"] = firstValid( getEnumValueForType( constants.eHLS_MAX_BANDWIDTH, prefs.getPrefValue( constants.pHLS_MAX_BANDWIDTH ) ), "0" ).ToInt()
                 video["Streams"].Push({url: urlDecoded, bitrate: 0, quality: false, contentid: -1})
                 video["SSL"] = isSSL
             end if

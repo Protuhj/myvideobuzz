@@ -54,6 +54,13 @@ Function LoadPreferences() as Object
         prefType: "enum",
         enumType: consts.eVID_QUALITY
         })
+    prefs.HLSMaxBandwith = createPref( { prefName: "Limit Live Stream Bandwidth",
+        prefDesc: "Control the maximum bandwidth allowed for Live Streams. (Includes Twitch)",
+        prefDefault: consts.NO_PREFERENCE,
+        prefKey: consts.pHLS_MAX_BANDWIDTH,
+        prefType: "enum",
+        enumType: consts.eHLS_MAX_BANDWIDTH
+        })
     prefs.RokuPassword = createPref( { prefName: "Roku Password",
         prefDesc: "Password used to auto-update the channel.",
         prefDefault: "",
@@ -179,47 +186,62 @@ Sub youtube_browse_settings()
             ShortDescriptionLine1:"Add Account",
             ShortDescriptionLine2:"Manage your YouTube Account for the channel.",
             HDPosterUrl:"pkg:/images/icon_key.jpg",
-            SDPosterUrl:"pkg:/images/icon_key.jpg"
-        },
-        {
-            ShortDescriptionLine1:"Clear History",
-            ShortDescriptionLine2:"Clear your Video History - Current Size: " + tostr(m.historyLen) + " bytes",
-            HDPosterUrl:"pkg:/images/ClearHistory.png",
-            SDPosterUrl:"pkg:/images/ClearHistory.png"
+            SDPosterUrl:"pkg:/images/icon_key.jpg",
+            func: "AddAccount"
         },
         {
             ShortDescriptionLine1:"General",
             ShortDescriptionLine2:"General Settings",
             HDPosterUrl:"pkg:/images/General_Settings.png",
-            SDPosterUrl:"pkg:/images/General_Settings.png"
+            SDPosterUrl:"pkg:/images/General_Settings.png",
+            func: "GeneralSettings"
         },
         {
             ShortDescriptionLine1:"Twitch",
             ShortDescriptionLine2:"Settings for the Twitch channel.",
             HDPosterUrl:"pkg:/images/twitch.jpg",
-            SDPosterUrl:"pkg:/images/twitch.jpg"
+            SDPosterUrl:"pkg:/images/twitch.jpg",
+            func: "TwitchSettings"
         },
         {
             ShortDescriptionLine1:"Reddit",
             ShortDescriptionLine2:"Settings for the reddit channel.",
             HDPosterUrl:"pkg:/images/reddit.jpg",
-            SDPosterUrl:"pkg:/images/reddit.jpg"
+            SDPosterUrl:"pkg:/images/reddit.jpg",
+            func: "RedditSettings"
+        },
+        {
+            ShortDescriptionLine1:"Clear History",
+            ShortDescriptionLine2:"Clear your Video History - Current Size: " + tostr(m.historyLen) + " bytes",
+            HDPosterUrl:"pkg:/images/ClearHistory.png",
+            SDPosterUrl:"pkg:/images/ClearHistory.png",
+            func: "ClearHistory"
         },
         {
             ShortDescriptionLine1:"About",
             ShortDescriptionLine2:"About the channel.",
             HDPosterUrl:"pkg:/images/About.jpg",
-            SDPosterUrl:"pkg:/images/About.jpg"
+            SDPosterUrl:"pkg:/images/About.jpg",
+            func: "About"
         },
         {
             ShortDescriptionLine1:"What's new?",
             ShortDescriptionLine2:"View the channel's changelog.",
             HDPosterUrl:"pkg:/images/whatsnew.jpg",
-            SDPosterUrl:"pkg:/images/whatsnew.jpg"
+            SDPosterUrl:"pkg:/images/whatsnew.jpg",
+            func: "WhatsNew"
         }
     ]
-    ' If you change the "AddAccount" name, make sure you update uitkDoPosterMenu
-    onselect = [0, m, "AddAccount", "ClearHistory", "GeneralSettings", "TwitchSettings", "RedditSettings", "About", "WhatsNew"]
+    ' If you change the "AddAccount" name, make sure you update uitkDoPosterMen'
+    onselect = [0, m,
+                settingmenu[0].func,
+                settingmenu[1].func,
+                settingmenu[2].func,
+                settingmenu[3].func,
+                settingmenu[4].func,
+                settingmenu[5].func,
+                settingmenu[6].func
+                ]
 
     uitkDoPosterMenu( settingmenu, screen, onselect )
 End Sub
@@ -231,6 +253,12 @@ Sub EditGeneralSettings()
             HDPosterUrl:"pkg:/images/Settings.jpg",
             SDPosterUrl:"pkg:/images/Settings.jpg",
             prefData: getPrefs().getPrefData( getConstants().pVIDEO_QUALITY )
+        },
+        {
+            Title: "Limit Live Stream Bandwidth",
+            HDPosterUrl:"pkg:/images/Settings.jpg",
+            SDPosterUrl:"pkg:/images/Settings.jpg",
+            prefData: getPrefs().getPrefData( getConstants().pHLS_MAX_BANDWIDTH )
         },
         {
             Title: "Roku Development Password",
@@ -636,6 +664,8 @@ Function getEnumValuesForType( prefType as String, enumType = invalid as Dynamic
             retVal = [ "This Hour", "Today", "This Week", "This Month", "This Year", "All Time" ]
         else if ( enumType = constants.eAUTO_UPDATE_CHECK ) then
             retVal = [ "Disabled", "New Releases Only", "Newest (Release OR Development)" ]
+        else if ( enumType = constants.eHLS_MAX_BANDWIDTH ) then
+            retVal = [ "No Limit", "0.5 Mbps (Up to 160p)", "1 Mbps (Up to 360p)", "2 Mbps (Up to 480p)", "3 Mbps (Up to 720p)", "4 Mbps (Up to 720p/60FPS)" ]
         else
             print "enum must have the enumType defined!"
         end if
@@ -659,6 +689,8 @@ Function getEnumValueForType( enumType as String, index as Integer ) as Object
     else if ( enumType = constants.eAUTO_UPDATE_CHECK ) then
         ' Not used -- added for future use, maybe?
         retVal = [ "Off", "Release", "Newest"][index]
+    else if ( enumType = constants.eHLS_MAX_BANDWIDTH ) then
+        retVal = [ "0", "500", "1000", "2000", "3000", "4000" ][index]
     else
         print "enum must have the enumType defined!"
     end if
@@ -820,6 +852,7 @@ Function LoadConstants() as Object
     this.eREDDIT_QUERIES    = "redditQueryTypes"
     this.eREDDIT_FILTERS    = "redditFilterTypes"
     this.eAUTO_UPDATE_CHECK = "autoUpdateCheck"
+    this.eHLS_MAX_BANDWIDTH = "maxHLSBandwidth"
 
     ' Property Keys
     this.pREDDIT_ENABLED        = "RedditEnabled"
@@ -834,6 +867,7 @@ Function LoadConstants() as Object
     this.pLAN_VIDEOS_ENABLED    = "LanVideosEnabled"
     this.pHIDE_NO_UPDATE_MSG    = "HideNoUpdateAvailMsg"
     this.pLIKED_ENABLED         = "LikedEnabled"
+    this.pHLS_MAX_BANDWIDTH     = "HLSMaxBandwith"
 
     ' Source strings
     this.sYOUTUBE           = "YouTube"

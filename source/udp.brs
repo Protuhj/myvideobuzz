@@ -267,7 +267,9 @@ Function newForcedVideo(URL as String) as Dynamic
     meta["Description"]            = "Received from external source."
     meta["Length"]                 = 0
     if (right(lcase(URL), 4) = "m3u8") then
-        meta["StreamFormat"]           = "hls"
+        meta["StreamFormat"]       = "hls"
+        meta["MaxBandwidth"]       = firstValid( getEnumValueForType( constants.eHLS_MAX_BANDWIDTH, getPrefs().getPrefValue( constants.pHLS_MAX_BANDWIDTH ) ), "0" ).ToInt()
+        
     else if (right(lcase(URL), 3) = "mp4") then
         meta["StreamFormat"]           = "mp4"
     else

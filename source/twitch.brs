@@ -164,6 +164,7 @@ Sub newTwitchVideo( channel as String )
         meta["Length"]                 = 0
         meta["UserID"]                 = channel
         meta["StreamFormat"]           = "hls"
+        meta["MaxBandwidth"]           = firstValid( getEnumValueForType( getConstants().eHLS_MAX_BANDWIDTH, getPrefs().getPrefValue( getConstants().pHLS_MAX_BANDWIDTH ) ), "0" ).ToInt()
         meta["Live"]                   = true
         meta["Streams"]                = []
         meta["Source"]                 = getConstants().sTWITCH

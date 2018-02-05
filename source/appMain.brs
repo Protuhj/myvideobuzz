@@ -169,9 +169,10 @@ Sub ShowHomeScreen(params = invalid as Dynamic)
     'ids.push("l-PRY_c7x7U") ' DASH video with signature
     'ids.push("y60wDzZt8yg") ' Live Stream
     'ids.push("jLSEKjhD91c") ' FTG-15 Flight Test Video - fails for some reason
-    'ids.push("cL8sG3SQmiw")  ' Hydraulic Press Channel - Intro audio sounds like garbage with track 139
-    'ids.push("z0Z6gljz9_Y")  ' Polyphia - Nightmare (vevo)
-    'ids.push("mnzmUyHr1S8")  ' Returns '0.000' for first duration regular expression hit
+    'ids.push("cL8sG3SQmiw") ' Hydraulic Press Channel - Intro audio sounds like garbage with track 139
+    'ids.push("z0Z6gljz9_Y") ' Polyphia - Nightmare (vevo)
+    'ids.push("mnzmUyHr1S8") ' Returns '0.000' for first duration regular expression hit
+    'ids.push("w7qJVlokJzY") ' FunhausTV (live)
 
     ' --- Play a specific video --- '
     'res = youtube.ExecBatchQueryV3( ids )
@@ -190,7 +191,7 @@ Sub ShowHomeScreen(params = invalid as Dynamic)
     'youtube.FetchVideoList("GetPlaylistItems", "Blah", false, {contentArg: "PL30BFB50685A0252B"})
 
     ' Testing out a specific Twitch stream
-    ' newTwitchVideo( "giantwaffle" )
+    ' newTwitchVideo( "crendor" )
 
     ' Do main menu (required)
     uitkDoPosterMenu(menudata, screen, onselect)
