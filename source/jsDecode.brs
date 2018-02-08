@@ -314,11 +314,13 @@ Function solve(f, returns=True as Boolean) as Dynamic
             funcname = dic + "." + key
             newfunc = getFuncFromCall(f, funcname, args.Tokenize(",") )
             changed_args = solve(newfunc, returns=False)
-            for each arg in f["args"]
-                if ( changed_args[arg] <> invalid ) then
-                    f["args"][arg] = changed_args[arg]
-                end if
-            next
+            if ( changed_args <> invalid ) then
+                for each arg in f["args"]
+                    if ( changed_args[arg] <> invalid ) then
+                        f["args"][arg] = changed_args[arg]
+                    end if
+                next
+            end if
         else if ( name = "func_call_array" ) then
             dic = m[1]
             key = m[2]
@@ -326,11 +328,13 @@ Function solve(f, returns=True as Boolean) as Dynamic
             funcname = dic + "." + key
             newfunc = getFuncFromCall(f, funcname, args.Tokenize(",") )
             changed_args = solve(newfunc, returns=False)
-            for each arg in f["args"]
-                if ( changed_args[arg] <> invalid ) then
-                    f["args"][arg] = changed_args[arg]
-                end if
-            next
+            if ( changed_args <> invalid ) then
+                for each arg in f["args"]
+                    if ( changed_args[arg] <> invalid ) then
+                        f["args"][arg] = changed_args[arg]
+                    end if
+                next
+            end if
         else if ( name = "func_call" ) then
             lhs = m[1]
             funcname = m[2]
@@ -342,8 +346,8 @@ Function solve(f, returns=True as Boolean) as Dynamic
             b = getVal( m[2], f["args"] )
             c = getVal( m[3], f["args"] )
             f["args"][m[1]] = Mid(b, c+1, 1)
-            ' # a[b]=c[d%e.length]
         else if ( name = "x2" ) then
+            ' # a[b]=c[d%e.length]
             a = getVal( m[1], f["args"] )
             b = getVal( m[2], f["args"] )
             c = getVal( m[3], f["args"] )
@@ -355,8 +359,8 @@ Function solve(f, returns=True as Boolean) as Dynamic
                 f["args"][m[1]] = ""
             end if
             f["args"][m[1]] =  f["args"][m[1]] + Mid(toStr( c ), (d MOD len(e)) + 1, 1) + Mid(a, b + 2)
-            '# a[b]=c
         else if ( name = "x3" ) then
+            '# a[b]=c
             a = getVal( m[1], f["args"] )
             b = getVal( m[2], f["args"] )
             c = getVal( m[3], f["args"] )
@@ -366,7 +370,18 @@ Function solve(f, returns=True as Boolean) as Dynamic
                 f["args"][m[1]] = ""
             end if
             f["args"][m[1]] =  f["args"][m[1]] + toStr( c ) + Mid(a, b + 2)
-            '# a[b] = c
+        else if ( name = "x4" ) then
+            ' a[b%a.length]=c
+            a = getVal( m[1], f["args"] )
+            b = getVal( m[2], f["args"] )
+            c = getVal( m[3], f["args"] )
+            d = getVal( m[4], f["args"] )
+            if ( b > 0 ) then
+                f["args"][m[1]] = Left(a, b)
+            else
+                f["args"][m[1]] = ""
+            end if
+            f["args"][m[1]] =  f["args"][m[1]] + toStr( d ) + Mid(a, b + 2)
         else if ( name = "ret" ) then
             return f["args"][m[1]]
         else if ( name = "reverse" ) then

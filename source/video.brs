@@ -176,6 +176,7 @@ Function InitYouTube() As Object
     patterns.x1 =  CreateObject( "roRegex", "var\s(\w+)=(\w+)\[(\w+)\]$", "" )
     patterns.x2 = CreateObject( "roRegex", "(\w+)\[(\w+)\]=(\w+)\[(\w+)\%(\w+)\.length\]$", "" )
     patterns.x3 =  CreateObject( "roRegex", "(\w+)\[(\w+)\]=(\w+)$", "" )
+    patterns.x4 = CreateObject( "roRegex", "(\w+)\[(\w+)\%(\w+)\.length\]=(\w+)$", "" )
     patterns.ret = CreateObject( "roRegex", "return (\w+)(\.join\(" + Quote() + Quote() + "\))?$", "" )
     patterns.reverse =  CreateObject( "roRegex", "(\w+)=(\w+)\.reverse\(\)$", "" )
     patterns.reverse_noass = CreateObject( "roRegex", "(\w+)\.reverse\(\)$", "" )

@@ -1,3 +1,5 @@
+Version 2.2 Build 012
+    - Fixes crash on music videos.
 Version 2.2 Build 011
     - Added a new setting under General Settings to control the maximum allowed live stream bandwidth.
     - If you notice any kind of de-sync on live streams (Twitch or YouTube) you can play with this setting to see if it helps.
