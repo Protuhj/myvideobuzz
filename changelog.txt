@@ -1,3 +1,6 @@
+Version 2.2 Build 013
+    - Cleaning up Twitch displays.
+    - Version 2.3 candidate build.
 Version 2.2 Build 012
     - Fixes crash on music videos.
 Version 2.2 Build 011

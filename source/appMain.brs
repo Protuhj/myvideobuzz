@@ -113,7 +113,6 @@ Sub ShowHomeScreen(params = invalid as Dynamic)
         menudata.Push({ShortDescriptionLine1:"Local Network (Requires Multiple Rokus)", Custom: true, ViewFunc: CheckForLANVideos, categoryData:invalid, ShortDescriptionLine2:"Recent videos from other MyVideoBuzz channels running on your LAN.", HDPosterUrl:"pkg:/images/LAN.jpg", SDPosterUrl:"pkg:/images/LAN.jpg"})
     end if
 
-    'menudata.Push({ShortDescriptionLine1:"Top Channels", FeedURL:"pkg:/xml/topchannels.xml", categoryData:{ isPlaylist: false },  ShortDescriptionLine2:"Top Channels", HDPosterUrl:"pkg:/images/TopChannels.jpg", SDPosterUrl:"pkg:/images/TopChannels.jpg"})
     menudata.Push({ShortDescriptionLine1:"Most Popular", OnClick:"MostPopular", ShortDescriptionLine2:"Most Popular Videos", HDPosterUrl:"pkg:/images/MostPopular.jpg", SDPosterUrl:"pkg:/images/mostpopular.jpg"})
     menudata.Push({ShortDescriptionLine1:"Settings", OnClick:"BrowseSettings", ShortDescriptionLine2:"Edit channel settings", HDPosterUrl:"pkg:/images/Settings.jpg", SDPosterUrl:"pkg:/images/Settings.jpg"})
 
@@ -192,6 +191,9 @@ Sub ShowHomeScreen(params = invalid as Dynamic)
 
     ' Testing out a specific Twitch stream
     ' newTwitchVideo( "crendor" )
+    
+    ' Show Twitch followed streams
+    ' showUserFollowed( "protuhj" )
 
     ' Do main menu (required)
     uitkDoPosterMenu(menudata, screen, onselect)

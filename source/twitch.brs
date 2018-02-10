@@ -25,13 +25,13 @@ Sub ViewTwitch(youtube as Object, urlToQuery = "https://api.twitch.tv/kraken/gam
 
         ' Now add the 'More results' button
         if ( rsp.json._links <> invalid AND rsp.json._links.next <> invalid ) then
-            gameList.Push({shortDescriptionLine1: "More Results", action: "next", pageURL: rsp.json._links.next, HDPosterUrl:"pkg:/images/icon_next_episode.jpg", SDPosterUrl:"pkg:/images/icon_next_episode.jpg"})
+            gameList.Push({shortDescriptionLine1: "More Results", action: "next", pageURL: rsp.json._links.next, HDPosterUrl:"pkg:/images/twitch_more.jpg", SDPosterUrl:"pkg:/images/twitch_more.jpg"})
         end if
         twitchUserName = getPrefs().getPrefValue( getConstants().pTWITCH_USER_NAME )
         if ( Len( twitchUserName.Trim() ) > 0 ) then
-            gameList.Unshift({shortDescriptionLine1: "Followed Channels", special: "followed", username: twitchUserName, HDPosterUrl:"pkg:/images/YourSubscriptions.jpg", SDPosterUrl:"pkg:/images/YourSubscriptions.jpg"})
+            gameList.Unshift({shortDescriptionLine1: "Followed Channels", special: "followed", username: twitchUserName, HDPosterUrl:"pkg:/images/twitch_followed.jpg", SDPosterUrl:"pkg:/images/twitch_followed.jpg"})
         end if
-        ' gameList.Unshift({shortDescriptionLine1: "Back", action: "prev", HDPosterUrl:"pkg:/images/icon_prev_episode.jpg", SDPosterUrl:"pkg:/images/icon_prev_episode.jpg"})
+
         onselect = [1, gameList, youtube,
         function(menu, youtube, set_idx)
             if (menu[set_idx]["action"] <> invalid) then
@@ -80,7 +80,7 @@ End Sub
 Sub ViewTwitchStreams(gameName as String, urlToQuery = invalid as dynamic, totalDisplayed = 0 as dynamic )
     'https://api.twitch.tv/kraken/games/top?hls=true
     title = gameName
-    screen = uitkPreShowPosterMenu( "flat-episodic-16x9", title )
+    screen = uitkPreShowPosterMenu( "arced-16x9", title )
     screen.showMessage( "Loading Streams for " + gameName )
     if ( urlToQuery = invalid ) then
         urlToQuery = "https://api.twitch.tv/kraken/streams?limit=50&game=" + URLEncode(gameName)
@@ -99,7 +99,7 @@ Sub ViewTwitchStreams(gameName as String, urlToQuery = invalid as dynamic, total
                         streamList.Push({shortDescriptionLine1: "More Results", action: "next", displayedSoFar: totalDisplayed, pageURL: URLDecode(rsp.json._links.next), HDPosterUrl:"pkg:/images/icon_next_episode.jpg", SDPosterUrl:"pkg:/images/icon_next_episode.jpg"})
                     end if
                 end if
-                ' gameList.Unshift({shortDescriptionLine1: "Back", action: "prev", HDPosterUrl:"pkg:/images/icon_prev_episode.jpg", SDPosterUrl:"pkg:/images/icon_prev_episode.jpg"})
+
                 onselect = [1, streamList, gameName,
                 function(menu, gameName, set_idx)
                     if (menu[set_idx]["action"] <> invalid) then
@@ -209,8 +209,8 @@ Function NewTwitchGameLink(jsonObject As Object) As Object
     game["Description"]             = tostr( jsonObject.channels ) + " Channels"
     game["ShortDescriptionLine1"]   = game["TitleSeason"]
     game["ShortDescriptionLine2"]   = game["Title"]
-    game["SDPosterUrl"]             = jsonObject.game.box.medium
-    game["HDPosterUrl"]             = jsonObject.game.box.large
+    game["SDPosterUrl"]             = jsonObject.game.box.template.replace( "{width}", "158" ).replace( "{height}", "204" )
+    game["HDPosterUrl"]             = jsonObject.game.box.template.replace( "{width}", "214" ).replace( "{height}", "306" )
     return game
 End Function
 
@@ -231,13 +231,13 @@ Function NewTwitchStreamLink(jsonObject As Object) As Object
     game["Source"]                  = getConstants().sTWITCH
     game["Thumb"]                   = jsonObject.preview.large
     game["ContentType"]             = "game"
-    game["Title"]                   = jsonObject.channel.display_name + " [Viewers: " + tostr( jsonObject.viewers ) + "]"
+    game["Title"]                   = jsonObject.channel.game + " [Viewers: " + tostr( jsonObject.viewers ) + "]"
     game["FullDescription"]         = ""
     game["Description"]             = jsonObject.channel.status
     game["ShortDescriptionLine1"]   = game["TitleSeason"]
     game["ShortDescriptionLine2"]   = game["Title"]
-    game["SDPosterUrl"]             = jsonObject.preview.medium
-    game["HDPosterUrl"]             = jsonObject.preview.large
+    game["SDPosterUrl"]             = jsonObject.preview.template.replace( "{width}", "285" ).replace( "{height}", "145" )
+    game["HDPosterUrl"]             = jsonObject.preview.template.replace( "{width}", "385" ).replace( "{height}", "218" )
     return game
 End Function
 
