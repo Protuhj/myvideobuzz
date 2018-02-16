@@ -1302,28 +1302,30 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
     headers["Cookie"] = ""
     htmlString = http.getToStringWithTimeout(10, headers)
 
-    if (doDASH = true) then
-        retVal = getYouTubeDASHMPD( htmlString, video, isSSL )
+    if ( http.status <> -1 ) then
+        if (doDASH = true) then
+            retVal = getYouTubeDASHMPD( htmlString, video, isSSL )
 
-        ' If the get DASH MPD URL fails, then fall back to the old way.
-        if ( retVal = invalid ) then
-            ' invalid means the get_js_sm function reported that the STS value changed, retry.
-            getYouTubeMP4Url( video, doDASH, retryCount )
-        else if ( retVal.Count() = 0  ) then
-            if ( retryCount >= DASH_MAX_RETRIES ) then
-                print "Failed to find DASH MPD URL, attempting fall-back."
-                doDASH = false
-                retryCount = 0
-            else
-                ' Retry with second URL
-                getYouTubeMP4Url( video, doDASH, retryCount + 1 )
+            ' If the get DASH MPD URL fails, then fall back to the old way.
+            if ( retVal = invalid ) then
+                ' invalid means the get_js_sm function reported that the STS value changed, retry.
+                getYouTubeMP4Url( video, doDASH, retryCount )
+            else if ( retVal.Count() = 0  ) then
+                if ( retryCount >= DASH_MAX_RETRIES ) then
+                    print "Failed to find DASH MPD URL, attempting fall-back."
+                    doDASH = false
+                    retryCount = 0
+                else
+                    ' Retry with second URL
+                    getYouTubeMP4Url( video, doDASH, retryCount + 1 )
+                end if
             end if
         end if
-    end if
-    if (doDASH = false) then
-        if ( getYouTubeOrGDriveURLs( htmlString, video, isSSL, retryCount ) = invalid ) then
-            ' invalid means the get_js_sm function reported that the STS value changed, retry.
-            getYouTubeMP4Url( video, doDASH, retryCount )
+        if (doDASH = false) then
+            if ( getYouTubeOrGDriveURLs( htmlString, video, isSSL, retryCount ) = invalid ) then
+                ' invalid means the get_js_sm function reported that the STS value changed, retry.
+                getYouTubeMP4Url( video, doDASH, retryCount )
+            end if
         end if
     end if
     return video["Streams"]
@@ -1545,6 +1547,7 @@ Function getYouTubeDASHMPD( htmlString as String, video as Object, isSSL as Bool
 
     ' When true, tells the calling function to retry, since the STS value has changed
     stsValChanged = false
+    manifestObj = invalid
     if ( len( htmlString ) > 0 ) then
         getYoutube().dashManifestContents = invalid
         manifestObj = createDASHManifest( video["ID"], htmlString )

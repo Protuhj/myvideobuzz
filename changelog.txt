@@ -1,3 +1,5 @@
+Version 2.3 Build 001
+    - Fixed crash if a request times out when trying to play a video.
 Version 2.3 Build 000
     - Official release of 2.3.
 Version 2.2 Build 013
@@ -31,7 +33,3 @@ Version 2.2 Build 004
 Version 2.2 Build 003
     - Cleaning up implementation of issue #144.
     - Progress dialog shouldn't show up unless necessary.
-Version 2.2 Build 002
-    - Fixes issue #144 - Allow higher quality, DASH streams to play.
-        - This code isn't perfect, and might contain some bugs.
-        - At least you won't have to suffer through 360p video as much!
