@@ -1,3 +1,6 @@
+Version 2.3 Build 002
+    - Fixes liveleak video playback, fixing Issue #152.
+    - Thanks to youvegottabecrazy on GitHub!
 Version 2.3 Build 001
     - Fixed crash if a request times out when trying to play a video.
 Version 2.3 Build 000
@@ -26,10 +29,3 @@ Version 2.2 Build 006
     - Fixes a case where a 0 duration video would try to play and immediately stop (Issue #146)
 Version 2.2 Build 005
     - Allows Twitch streams to work again, which fixes issue #143.
-Version 2.2 Build 004
-    - Added option on the '*' menu to play audio only
-        - This will only work on YouTube videos with valid DASH streams (vast majority)
-        - If you're trying to save bandwidth, and don't care about the video contents, this could help.
-Version 2.2 Build 003
-    - Cleaning up implementation of issue #144.
-    - Progress dialog shouldn't show up unless necessary.
