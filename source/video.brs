@@ -1933,8 +1933,8 @@ Function getLiveleakMP4Url(video as Object, timeout = 0 as Integer, loginCookie 
     video["Streams"].Clear()
 
     if ( video["URL"] <> invalid ) then
-        liveleakMP4UrlRegex = CreateObject( "roRegex", "source\s+src=\" + Quote() + "(.*)\" + Quote() + "[^>]*res=\" + Quote() + "SD\" + Quote() , "ig" )
-        liveleakMP4HDUrlRegex = CreateObject( "roRegex", "source\s+src=\" + Quote() + "(.*)\" + Quote() + "[^>]*res=\" + Quote() + "HD\" + Quote(), "ig" )
+        liveleakMP4UrlRegex = CreateObject( "roRegex", "source\s+src=\" + Quote() + "(.*)\" + Quote() + "[^>]*label=\" + Quote() + "(SD|360p)\" + Quote() , "ig" )
+        liveleakMP4HDUrlRegex = CreateObject( "roRegex", "source\s+src=\" + Quote() + "(.*)\" + Quote() + "[^>]*label=\" + Quote() + "HD\" + Quote(), "ig" )
         
         url = video["URL"]
         port = CreateObject( "roMessagePort" )
