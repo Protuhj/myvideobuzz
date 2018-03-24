@@ -76,14 +76,22 @@ Function get_js_sm(video_id as String, waitDialog = invalid as Dynamic) as Dynam
         funcs = getYoutube().funcmap
         if ( funcs = invalid OR (getYoutube().JSUrl <> js_url) ) then
             if (waitDialog <> invalid) then
-                waitDialog.UpdateText( "Downloading javascript file..." )
+                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
+                    waitDialog.UpdateText( "Downloading javascript file..." )
+                else
+                    waitDialog.SetText( "Downloading javascript file..." )
+                end if
             end if
             jsHttp = NewHttp( js_url )
             headers = { }
             headers["User-Agent"] = getConstants().USER_AGENT
             javascript = jsHttp.getToStringWithTimeout(10, headers)
             if (waitDialog <> invalid) then
-                waitDialog.UpdateText( "Parsing javascript..." )
+                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
+                    waitDialog.UpdateText( "Parsing javascript..." )
+                else
+                    waitDialog.SetText( "Parsing javascript..." )
+                end if
             end if
             mainfunc = getMainfuncFromJS(javascript)
             if ( mainfunc <> invalid ) then

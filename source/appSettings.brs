@@ -143,6 +143,14 @@ Function LoadPreferences() as Object
         enumType: consts.eENABLED_DISABLED
         })
 
+    prefs.RokuOneSupport = createPref( { prefName: "Enable Roku 1 Support",
+        prefDesc: "If enabled, try to ensure the channel doesn't crash on a Roku 1. (Old firmware)",
+        prefDefault: consts.DISABLED_VALUE,
+        prefKey: consts.pROKU_ONE_SUPPORT,
+        prefType: "enum",
+        enumType: consts.eENABLED_DISABLED
+        })
+
     prefs.getPrefData  = getPrefData_impl
     prefs.getPrefValue = getPrefValue_impl
     prefs.setPrefValue = setPrefValue_impl
@@ -289,6 +297,12 @@ Sub EditGeneralSettings()
             HDPosterUrl:"pkg:/images/Settings.jpg",
             SDPosterUrl:"pkg:/images/Settings.jpg",
             prefData: getPrefs().getPrefData( getConstants().pLIKED_ENABLED )
+        },
+        {
+            Title: "Enable Roku 1 Support",
+            HDPosterUrl:"pkg:/images/Settings.jpg",
+            SDPosterUrl:"pkg:/images/Settings.jpg",
+            prefData: getPrefs().getPrefData( getConstants().pROKU_ONE_SUPPORT )
         }
     ]
 
@@ -868,6 +882,7 @@ Function LoadConstants() as Object
     this.pHIDE_NO_UPDATE_MSG    = "HideNoUpdateAvailMsg"
     this.pLIKED_ENABLED         = "LikedEnabled"
     this.pHLS_MAX_BANDWIDTH     = "HLSMaxBandwith"
+    this.pROKU_ONE_SUPPORT      = "RokuOneSupport"
 
     ' Source strings
     this.sYOUTUBE           = "YouTube"

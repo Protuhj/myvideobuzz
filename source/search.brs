@@ -250,10 +250,14 @@ Sub updateSearchDialogText(dialog as Object, isUpdate = false as Boolean)
         searchLengthText = searchLengthText + "(ignored)"
     end if
     dialogText = "Length: " + searchLengthText + chr(10) + "Sort: " + searchSortText + chr(10) + "Live?: " + searchLiveText
-    if (isUpdate = true) then
-        dialog.UpdateText(dialogText)
+    if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
+        if (isUpdate = true) then
+            dialog.UpdateText( dialogText )
+        else
+            dialog.SetText( dialogText )
+        end if
     else
-        dialog.SetText(dialogText)
+        dialog.SetText( dialogText )
     end if
 End Sub
 

@@ -1378,7 +1378,11 @@ Function dashManifest( videoID as String, formatData, duration )
                         videoURL = format.url.DecodeUri().DecodeUri().GetEntityEncode()
                     else
                         if ( waitDialog <> invalid ) then
-                            waitDialog.UpdateText( "Decoding next video URL" )
+                            if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
+                                waitDialog.UpdateText( "Decoding next video URL" )
+                            else
+                                ' Don't update the Dialog, since Roku 1 doesn't support UpdateText
+                            end if
                         else
                             waitDialog = ShowPleaseWait( "Creating DASH Manifest", "Decoding signature..." )
                         end if
@@ -1440,7 +1444,12 @@ Function decodeEncryptedS( videoID as String, first as Boolean, sVal as String, 
         'return getYouTubeMP4Url( video, false, 0 )
         if ( getJSUrl = true ) then
             if (pleaseWaitDlg <> invalid) then
-                pleaseWaitDlg.UpdateText( "Downloading webpage..." )
+                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
+                    pleaseWaitDlg.UpdateText( "Downloading webpage..." )
+                else
+                    ' Add another line in this case
+                    pleaseWaitDlg.SetText( "Downloading webpage..." )
+                end if
             end if
             functionMap = get_js_sm( videoID, pleaseWaitDlg )
             getJSUrl = false
@@ -1450,20 +1459,28 @@ Function decodeEncryptedS( videoID as String, first as Boolean, sVal as String, 
         if ( functionMap <> invalid AND functionMap["stsValChanged"] = invalid ) then
             getYoutube().funcmap = functionMap
             if (pleaseWaitDlg <> invalid) then
-                pleaseWaitDlg.UpdateText( "Decoding signature..." )
+                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
+                    pleaseWaitDlg.UpdateText( "Decoding signature..." )
+                end if
             end if
             newSig = decodesig( sVal )
             if ( newSig <> invalid ) then
                 'signature = "/signature/" + newSig
                 retObj.signature = newSig
                 if (pleaseWaitDlg <> invalid) then
-                    pleaseWaitDlg.UpdateText( "Done!" )
+                    if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
+                        pleaseWaitDlg.UpdateText( "Done!" )
+                    end if ' No else, the dialog will be closing
                 end if
             else
                 retObj.didFail = true
                 print "Failed to decode signature!"
                 if (pleaseWaitDlg <> invalid) then
-                    pleaseWaitDlg.UpdateText( "Failed to decode signature!" )
+                    if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
+                        pleaseWaitDlg.UpdateText( "Failed to decode signature!" )
+                    else
+                        pleaseWaitDlg.SetText( "Failed to decode signature!" )
+                    end if
                 end if
             end if
         else if ( functionMap <> invalid AND functionMap["stsValChanged"] <> invalid ) then
@@ -1473,13 +1490,19 @@ Function decodeEncryptedS( videoID as String, first as Boolean, sVal as String, 
             print "STS value has changed :: decodeEncryptedS"
             retObj.stsValChanged = true
             if (pleaseWaitDlg <> invalid) then
-                pleaseWaitDlg.UpdateText( "STS value has changed, going to retry." )
+                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
+                    pleaseWaitDlg.UpdateText( "STS value has changed, going to retry." )
+                end if ' Don't update
             end if
         else ' functionMap = invalid
             retObj.didFail = true
             print "Failed to parse javascript!"
             if (pleaseWaitDlg <> invalid) then
-                pleaseWaitDlg.UpdateText( "Failed to parse javascript!" )
+                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
+                    pleaseWaitDlg.UpdateText( "Failed to parse javascript!" )
+                else
+                    pleaseWaitDlg.SetText( "Failed to parse javascript!" )
+                end if
             end if
         end if
     end if
@@ -1638,19 +1661,29 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                         if ( functionMap <> invalid AND functionMap["stsValChanged"] = invalid ) then
                             getYoutube().funcmap = functionMap
                             if (pleaseWaitDlg <> invalid) then
-                                pleaseWaitDlg.UpdateText( "Decoding signature..." )
+                                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
+                                    pleaseWaitDlg.UpdateText( "Decoding signature..." )
+                                else
+                                    pleaseWaitDlg.SetText( "Decoding signature..." )
+                                end if
                             end if
                             newSig = decodesig( pair.s )
                             if ( newSig <> invalid ) then
                                 signature = "&signature=" + newSig
                                 if (pleaseWaitDlg <> invalid) then
-                                    pleaseWaitDlg.UpdateText( "Done!" )
+                                    if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
+                                        pleaseWaitDlg.UpdateText( "Done!" )
+                                    end if
                                 end if
                             else
                                 didFail = true
                                 print "Failed to decode signature!"
                                 if (pleaseWaitDlg <> invalid) then
-                                    pleaseWaitDlg.UpdateText( "Failed to decode signature!" )
+                                    if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
+                                        pleaseWaitDlg.UpdateText( "Failed to decode signature!" )
+                                    else
+                                        pleaseWaitDlg.SetText( "Failed to decode signature!" )
+                                    end if
                                 end if
                             end if
                         else if ( functionMap <> invalid AND functionMap["stsValChanged"] <> invalid ) then
@@ -1660,13 +1693,19 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                             print "STS value has changed"
                             stsValChanged = true
                             if (pleaseWaitDlg <> invalid) then
-                                pleaseWaitDlg.UpdateText( "STS value has changed, going to retry." )
+                                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
+                                    pleaseWaitDlg.UpdateText( "STS value has changed, going to retry." )
+                                end if
                             end if
                         else ' functionMap = invalid
                             didFail = true
                             print "Failed to parse javascript!"
                             if (pleaseWaitDlg <> invalid) then
-                                pleaseWaitDlg.UpdateText( "Failed to parse javascript!" )
+                                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
+                                    pleaseWaitDlg.UpdateText( "Failed to parse javascript!" )
+                                else
+                                    pleaseWaitDlg.SetText( "Failed to parse javascript!" )
+                                end if
                             end if
                         end if
                     else

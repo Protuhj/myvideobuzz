@@ -756,8 +756,12 @@ Sub updateVListDialogText( dialog as Object, isUpdate as Boolean, isReddit as Bo
         dialogText = dialogText + chr( 10 ) + "Reddit Feed: " + redditFeedType + chr( 10 )
         dialogText = dialogText + "Reddit Filter: " + redditFilterType
     end if
-    if ( isUpdate = true ) then
-        dialog.UpdateText( dialogText )
+    if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
+        if ( isUpdate = true ) then
+            dialog.UpdateText( dialogText )
+        else
+            dialog.SetText( dialogText )
+        end if
     else
         dialog.SetText( dialogText )
     end if

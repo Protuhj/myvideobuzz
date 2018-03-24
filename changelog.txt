@@ -1,3 +1,8 @@
+Version 2.3 Build 004
+    - Adds a General Preference to enable Roku 1 support.
+    - This disables some features that are not supported on the Roku 1.
+    - Some dialogs have too much text if this is enabled.
+    - Addresses issue #157.
 Version 2.3 Build 003
     - Attempts to fix compilation issues on Roku 1, fixing Issue #157.
 Version 2.3 Build 002
