@@ -62,7 +62,7 @@ Sub showUserFollowed( userName as String )
         else
             channelsList = ""
             for each entry in rsp.json.follows
-                channelsList += entry.channel.name + ","
+                channelsList = channelsList + entry.channel.name + ","
             next
             ViewTwitchStreams( "Followed Channels", "https://api.twitch.tv/kraken/streams/?limit=50&channel=" + channelsList + GetAddendum() )
         end if
@@ -89,7 +89,7 @@ Sub ViewTwitchStreams(gameName as String, urlToQuery = invalid as dynamic, total
     
     if ( rsp.status = 200 ) then
         streamList = NewTwitchStreamList( rsp.json )
-        totalDisplayed += streamList.Count()
+        totalDisplayed = totalDisplayed + streamList.Count()
 
         if ( totalDisplayed > 0 ) then
             if ( streamList.Count() > 0 ) then

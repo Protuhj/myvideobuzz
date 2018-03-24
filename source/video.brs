@@ -1335,10 +1335,10 @@ Function dashManifest( videoID as String, formatData, duration )
     waitDialog = invalid
     codecRegex = CreateObject("roRegex", "codecs=" + Quote() + "(.+)" + Quote(), "ig")
     MPDString = "<?xml version=" + Quote() + "1.0" + Quote() + " encoding=" + Quote() + "UTF-8" + Quote() + "?>"
-    MPDString += "<MPD xmlns:xsi=" + Quote() + "http://www.w3.org/2001/XMLSchema-instance" + Quote() + " xmlns=" + Quote() + "urn:mpeg:DASH:schema:MPD:2011" + Quote() + " xmlns:yt=" + Quote() + "http://youtube.com/yt/2012/10/10" + Quote() + " xsi:schemaLocation=" + Quote() + "urn:mpeg:DASH:schema:MPD:2011 DASH-MPD.xsd" + Quote() + " minBufferTime=" + Quote() + "PT5.500S" + Quote() + " profiles=" + Quote() + "urn:mpeg:dash:profile:isoff-on-demand:2011" + Quote() + " type=" + Quote() + "static" + Quote() + " mediaPresentationDuration=" + Quote() + "PT"
-    MPDString += duration
-    MPDString += "S" + Quote() + ">"
-    MPDString += "<Period duration=" + Quote() + "PT" + duration + "S" + Quote() + ">"
+    MPDString = MPDString + "<MPD xmlns:xsi=" + Quote() + "http://www.w3.org/2001/XMLSchema-instance" + Quote() + " xmlns=" + Quote() + "urn:mpeg:DASH:schema:MPD:2011" + Quote() + " xmlns:yt=" + Quote() + "http://youtube.com/yt/2012/10/10" + Quote() + " xsi:schemaLocation=" + Quote() + "urn:mpeg:DASH:schema:MPD:2011 DASH-MPD.xsd" + Quote() + " minBufferTime=" + Quote() + "PT5.500S" + Quote() + " profiles=" + Quote() + "urn:mpeg:dash:profile:isoff-on-demand:2011" + Quote() + " type=" + Quote() + "static" + Quote() + " mediaPresentationDuration=" + Quote() + "PT"
+    MPDString = MPDString + duration
+    MPDString = MPDString + "S" + Quote() + ">"
+    MPDString = MPDString + "<Period duration=" + Quote() + "PT" + duration + "S" + Quote() + ">"
     ' Audio
     firstSDecrypt = true
     retObj = {}
@@ -1360,14 +1360,14 @@ Function dashManifest( videoID as String, formatData, duration )
             end if
         end if
         ' print "Audio Encoded URL is: " + encodedURL
-        MPDString += "<AdaptationSet id=" + Quote() + "0" + Quote() + " mimeType=" + Quote() + "audio/mp4" + Quote() + " subsegmentAlignment=" + Quote() + "true" + Quote() + ">"
-        MPDString += "<Role schemeIdUri=" + Quote() + "urn:mpeg:DASH:role:2011" + Quote() + " value=" + Quote() + "main" + Quote() + "/>"
-        MPDString += "<Representation id=" + Quote() + "140" + Quote() + " codecs=" + Quote() + "mp4a.40.2" + Quote() + " audioSamplingRate=" + Quote() + "44100" + Quote() + " startWithSAP=" + Quote() + "1" + Quote() + " bandwidth=" + Quote() + toStr( audioData.bitrate.ToInt() / 8 ) + Quote() + ">"
-        MPDString += "<AudioChannelConfiguration schemeIdUri=" + Quote() + "urn:mpeg:dash:23003:3:audio_channel_configuration:2011" + Quote() + " value=" + Quote() + "2" + Quote() + "/>"
-        MPDString += "<BaseURL yt:contentLength=" + Quote() + toStr( audioData.clen.ToInt() / 8 ) + Quote() + ">" + encodedURL + "</BaseURL>"
-        MPDString += "<SegmentBase indexRange=" + Quote() + audioData.index + Quote() + " indexRangeExact=" + Quote() + "true" + Quote() + ">"
-        MPDString += "<Initialization range=" + Quote() + audioData.init + Quote() + "/>"
-        MPDString += "</SegmentBase></Representation></AdaptationSet>"
+        MPDString = MPDString + "<AdaptationSet id=" + Quote() + "0" + Quote() + " mimeType=" + Quote() + "audio/mp4" + Quote() + " subsegmentAlignment=" + Quote() + "true" + Quote() + ">"
+        MPDString = MPDString + "<Role schemeIdUri=" + Quote() + "urn:mpeg:DASH:role:2011" + Quote() + " value=" + Quote() + "main" + Quote() + "/>"
+        MPDString = MPDString + "<Representation id=" + Quote() + "140" + Quote() + " codecs=" + Quote() + "mp4a.40.2" + Quote() + " audioSamplingRate=" + Quote() + "44100" + Quote() + " startWithSAP=" + Quote() + "1" + Quote() + " bandwidth=" + Quote() + toStr( audioData.bitrate.ToInt() / 8 ) + Quote() + ">"
+        MPDString = MPDString + "<AudioChannelConfiguration schemeIdUri=" + Quote() + "urn:mpeg:dash:23003:3:audio_channel_configuration:2011" + Quote() + " value=" + Quote() + "2" + Quote() + "/>"
+        MPDString = MPDString + "<BaseURL yt:contentLength=" + Quote() + toStr( audioData.clen.ToInt() / 8 ) + Quote() + ">" + encodedURL + "</BaseURL>"
+        MPDString = MPDString + "<SegmentBase indexRange=" + Quote() + audioData.index + Quote() + " indexRangeExact=" + Quote() + "true" + Quote() + ">"
+        MPDString = MPDString + "<Initialization range=" + Quote() + audioData.init + Quote() + "/>"
+        MPDString = MPDString + "</SegmentBase></Representation></AdaptationSet>"
         setID = 1
         if ( getYoutube().audio_only = false ) then
             for each formatKey in formatData
@@ -1399,18 +1399,18 @@ Function dashManifest( videoID as String, formatData, duration )
                     widthStr = resolutionSplit[0]
                     heightStr = resolutionSplit[1]
                     bandwidthStr = toStr( format.bitrate.ToInt() / 8 )
-                    MPDString += "<AdaptationSet id=" + Quote() + toStr( setID ) + Quote() + " mimeType=" + Quote() + formatTypeEscaped.split( ";" )[0] + Quote() + " subsegmentAlignment=" + Quote() + "true" + Quote() + ">"
-                    MPDString += "<Role schemeIdUri=" + Quote() + "urn:mpeg:DASH:role:2011" + Quote() + " value=" + Quote() + "main" + Quote() + "/>"
-                    MPDString += "<Representation id=" + Quote() + format.itag + Quote() + " codecs=" + Quote() + codecStr + Quote() + " width=" + Quote() + widthStr + Quote() + " height=" + Quote() + heightStr + Quote() + " startWithSAP=" + Quote() + "1" + Quote() + " maxPlayoutRate=" + Quote() + "1" + Quote() + " bandwidth=" + Quote() + bandwidthStr + Quote() + " frameRate=" + Quote() + format.fps + Quote() + ">"
-                    MPDString += "<BaseURL yt:contentLength=" + Quote() + lenStr + Quote() + ">" + videoURL + "</BaseURL>"
-                    MPDString += "<SegmentBase indexRange=" + Quote() + format.index + Quote() + " indexRangeExact=" + Quote() + "true" + Quote() + ">"
-                    MPDString += "<Initialization range=" + Quote() + format.init + Quote() + "/>"
-                    MPDString += "</SegmentBase></Representation></AdaptationSet>"
-                    setID += 1
+                    MPDString = MPDString + "<AdaptationSet id=" + Quote() + toStr( setID ) + Quote() + " mimeType=" + Quote() + formatTypeEscaped.split( ";" )[0] + Quote() + " subsegmentAlignment=" + Quote() + "true" + Quote() + ">"
+                    MPDString = MPDString + "<Role schemeIdUri=" + Quote() + "urn:mpeg:DASH:role:2011" + Quote() + " value=" + Quote() + "main" + Quote() + "/>"
+                    MPDString = MPDString + "<Representation id=" + Quote() + format.itag + Quote() + " codecs=" + Quote() + codecStr + Quote() + " width=" + Quote() + widthStr + Quote() + " height=" + Quote() + heightStr + Quote() + " startWithSAP=" + Quote() + "1" + Quote() + " maxPlayoutRate=" + Quote() + "1" + Quote() + " bandwidth=" + Quote() + bandwidthStr + Quote() + " frameRate=" + Quote() + format.fps + Quote() + ">"
+                    MPDString = MPDString + "<BaseURL yt:contentLength=" + Quote() + lenStr + Quote() + ">" + videoURL + "</BaseURL>"
+                    MPDString = MPDString + "<SegmentBase indexRange=" + Quote() + format.index + Quote() + " indexRangeExact=" + Quote() + "true" + Quote() + ">"
+                    MPDString = MPDString + "<Initialization range=" + Quote() + format.init + Quote() + "/>"
+                    MPDString = MPDString + "</SegmentBase></Representation></AdaptationSet>"
+                    setID = setID + 1
                 end if
             end for
         end if
-        MPDString += "</Period></MPD>"
+        MPDString = MPDString + "</Period></MPD>"
         if ( setID = 1 AND getYoutube().audio_only = false ) then
             print "No video streams found?"
             retObj.didFail = true

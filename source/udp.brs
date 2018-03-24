@@ -169,12 +169,12 @@ Sub CheckForUnicast()
                         if (received > 0) then
                             if ( connection.isWritable() ) then
                                 response = "HTTP/1.1 200 OK" + rn
-                                'response += "Date: Wed, 24 Jan 2018 05:04:22 GMT" + rn
-                                response += "Content-Type: text/html; charset=UTF-8" + rn
-                                response += "Content-Length: " + toStr( len( text ) ) + rn
-                                response += "Accept-Ranges: bytes" + rn
-                                response += "Connection: close" + rn + rn
-                                response += text
+                                'response = response + "Date: Wed, 24 Jan 2018 05:04:22 GMT" + rn
+                                response = response + "Content-Type: text/html; charset=UTF-8" + rn
+                                response = response + "Content-Length: " + toStr( len( text ) ) + rn
+                                response = response + "Accept-Ranges: bytes" + rn
+                                response = response + "Connection: close" + rn + rn
+                                response = response + text
                                 sent = connection.sendStr(response)
                                 print "Sent " + tostr(sent) + " bytes"
                             else

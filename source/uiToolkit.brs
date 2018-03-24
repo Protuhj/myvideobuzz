@@ -645,9 +645,9 @@ Function VListOptionDialog( videoObj as Object, isReddit = false as Boolean ) as
     audioButtonTextBase = "Play Audio Only? (If possible): "
     audioButtonText = audioButtonTextBase
     if ( m.youtube.audio_only ) then
-        audioButtonText += " Yes"
+        audioButtonText = audioButtonText + " Yes"
     else
-        audioButtonText += " No"
+        audioButtonText = audioButtonText + " No"
     end if
     dialog.addButton( audioOnlyId, audioButtonText )
     if ( videoObj <> invalid AND videoObj["Description"] <> invalid AND len( videoObj["Description"] ) > 0 ) then
@@ -717,9 +717,9 @@ Function VListOptionDialog( videoObj as Object, isReddit = false as Boolean ) as
                     m.youtube.audio_only = NOT(m.youtube.audio_only)
                     audioButtonText = audioButtonTextBase
                     if ( m.youtube.audio_only ) then
-                        audioButtonText += " Yes"
+                        audioButtonText = audioButtonText + " Yes"
                     else
-                        audioButtonText += " No"
+                        audioButtonText = audioButtonText + " No"
                     end if
                     dialog.UpdateButton( audioOnlyId, audioButtonText )
                 else if ( buttonPressed = doneId ) then

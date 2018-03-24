@@ -1,3 +1,5 @@
+Version 2.3 Build 003
+    - Attempts to fix compilation issues on Roku 1, fixing Issue #157.
 Version 2.3 Build 002
     - Fixes liveleak video playback, fixing Issue #152.
     - Thanks to youvegottabecrazy on GitHub!
@@ -22,10 +24,3 @@ Version 2.2 Build 008
     - Allow you to enter your Twitch user name to be able to show your followed channels.
     - You can edit your username (case doesn't matter) in the Twitch settings page.
     - Addresses Issue #147
-Version 2.2 Build 007
-    - Ensure an invalid result from YouTube won't crash the channel.
-        - (Issue #125, thanks to youvegottabecrazy!)
-Version 2.2 Build 006
-    - Fixes a case where a 0 duration video would try to play and immediately stop (Issue #146)
-Version 2.2 Build 005
-    - Allows Twitch streams to work again, which fixes issue #143.
