@@ -1,3 +1,7 @@
+Version 2.3 Build 005
+    - Adds support for domains on the reddit feature.
+    - You will need to use an external keyboard (Phone, Remoku.tv) to enter in periods, like in youtube.com.
+    - Issue #155. Thanks to youvegottabecrazy!
 Version 2.3 Build 004
     - Adds a General Preference to enable Roku 1 support.
     - This disables some features that are not supported on the Roku 1.
@@ -22,10 +26,3 @@ Version 2.2 Build 011
     - If you notice any kind of de-sync on live streams (Twitch or YouTube) you can play with this setting to see if it helps.
 Version 2.2 Build 010
     - Fixed a crash if no followed Twitch streams are live.
-Version 2.2 Build 009
-    - Attempt to reduce Twitch sync issues.
-    - Addresses Issue #148
-Version 2.2 Build 008
-    - Allow you to enter your Twitch user name to be able to show your followed channels.
-    - You can edit your username (case doesn't matter) in the Twitch settings page.
-    - Addresses Issue #147
