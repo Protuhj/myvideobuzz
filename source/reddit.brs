@@ -162,9 +162,13 @@ Function QueryReddit(multireddits = "videos" as String) As Object
     if (Instr(0, multireddits, "http://")) then
         http = NewHttp( multireddits )
     else
+        stub = "r"
+        if (Instr(0, multireddits, ".")) then
+            stub = "domain"
+        end if
         redditQueryType = LCase( firstValid( getEnumValueForType( getConstants().eREDDIT_QUERIES, prefs.getPrefValue( prefs.RedditFeed.key ) ), "Hot" ) )
         redditFilterType = LCase( firstValid( getEnumValueForType( getConstants().eREDDIT_FILTERS, prefs.getPrefValue( prefs.RedditFilter.key ) ), "All" ) )
-        http = NewHttp("http://www.reddit.com/r/" + multireddits + "/" + redditQueryType + ".json?t=" + redditFilterType)
+        http = NewHttp("http://www.reddit.com/" + stub + "/" + multireddits + "/" + redditQueryType + ".json?t=" + redditFilterType)
     end if
     headers = {}
 
