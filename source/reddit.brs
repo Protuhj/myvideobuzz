@@ -165,6 +165,8 @@ Function QueryReddit(multireddits = "videos" as String) As Object
         stub = "r"
         if (Instr(0, multireddits, ".")) then
             stub = "domain"
+        else if (Instr(0, multireddits, "/m/")) then
+            stub = "user"
         end if
         redditQueryType = LCase( firstValid( getEnumValueForType( getConstants().eREDDIT_QUERIES, prefs.getPrefValue( prefs.RedditFeed.key ) ), "Hot" ) )
         redditFilterType = LCase( firstValid( getEnumValueForType( getConstants().eREDDIT_FILTERS, prefs.getPrefValue( prefs.RedditFilter.key ) ), "All" ) )
