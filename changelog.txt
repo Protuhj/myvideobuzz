@@ -1,3 +1,6 @@
+Version 2.3 Build 006
+    - Fix a possible crash on the reddit component.
+    - Handle parsing reddit thumbnails a little better, hopefully increasing responsiveness.
 Version 2.3 Build 005
     - Adds support for domains on the reddit feature.
     - You will need to use an external keyboard (Phone, Remoku.tv) to enter in periods, like in youtube.com.
@@ -19,10 +22,3 @@ Version 2.3 Build 000
 Version 2.2 Build 013
     - Cleaning up Twitch displays.
     - Version 2.3 candidate build.
-Version 2.2 Build 012
-    - Fixes crash on music videos.
-Version 2.2 Build 011
-    - Added a new setting under General Settings to control the maximum allowed live stream bandwidth.
-    - If you notice any kind of de-sync on live streams (Twitch or YouTube) you can play with this setting to see if it helps.
-Version 2.2 Build 010
-    - Fixed a crash if no followed Twitch streams are live.

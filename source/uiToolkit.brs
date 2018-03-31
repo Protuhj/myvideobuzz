@@ -101,9 +101,9 @@ Function uitkDoPosterMenu( posterdata, screen, onselect_callback = invalid, onpl
             else if (msg.isRemoteKeyPressed()) then
                 ' If the play button is pressed on the video list, and the onplay_func is valid, play the video
                 if (onplay_func <> invalid ) then
-                    if ( msg.GetIndex() = bslUniversalControlEventCodes().BUTTON_PLAY_PRESSED ) then
+                    if ( msg.GetIndex() = 13 ) then
                         onplay_func( posterdata[idx%] )
-                    else if ( msg.GetIndex() = bslUniversalControlEventCodes().BUTTON_INFO_PRESSED ) then
+                    else if ( msg.GetIndex() = 10 ) then
                         while ( VListOptionDialog( posterdata[idx%] ) = 1 )
                         end while
                     end if
@@ -474,7 +474,7 @@ Function uitkDoCategoryMenu(categoryList, screen, content_callback = invalid, on
     awaiting_timeout = false
     ' Default the multicast timer
     multicast_time.Mark()
-    buttonCodes = bslUniversalControlEventCodes()
+
     while (true)
         msg = wait(500, screen.GetMessagePort())
         if (type(msg) = "roPosterScreenEvent") then
@@ -545,15 +545,15 @@ Function uitkDoCategoryMenu(categoryList, screen, content_callback = invalid, on
                 return -1
             else if (msg.isRemoteKeyPressed()) then
                 ' If the play button is pressed on the video list, and the onplay_func is valid, play the video
-                if (onplay_func <> invalid AND msg.GetIndex() = buttonCodes.BUTTON_PLAY_PRESSED AND contentlist[idx%]["isPlaylist"] <> true) then
+                if (onplay_func <> invalid AND msg.GetIndex() = 13 AND contentlist[idx%]["isPlaylist"] <> true) then
                     ' Stops the annoyance when a video finishes playing and the banner gets re-selected.
                     screen.SetFocusToFilterBanner( false )
                     onplay_func(contentlist[idx%])
                 ' If the * button is pressed while viewing a playlist, show the option to reverse it.
-                else if ( awaiting_timeout = false AND isPlaylist = true AND msg.GetIndex() = buttonCodes.BUTTON_INFO_PRESSED ) then
+                else if ( awaiting_timeout = false AND isPlaylist = true AND msg.GetIndex() = 10 ) then
                     while ( VListOptionDialog( contentlist[idx%] ) = 1 )
                     end while
-                else if ( awaiting_timeout = false AND isPlaylist = false AND msg.GetIndex() = buttonCodes.BUTTON_INFO_PRESSED ) then
+                else if ( awaiting_timeout = false AND isPlaylist = false AND msg.GetIndex() = 10 ) then
                     redditFeedType = m.prefs.getPrefValue( m.prefs.RedditFeed.key )
                     redditFilterType = m.prefs.getPrefValue( m.prefs.RedditFilter.key )
                     while ( VListOptionDialog( contentlist[idx%], isReddit ) = 1 )

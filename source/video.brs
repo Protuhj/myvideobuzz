@@ -1302,7 +1302,7 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
     headers["Cookie"] = ""
     htmlString = http.getToStringWithTimeout(10, headers)
 
-    if ( http.status <> -1 ) then
+    if ( http.status <> -1 AND http.status <> 403 ) then
         if (doDASH = true) then
             retVal = getYouTubeDASHMPD( htmlString, video, isSSL )
 
@@ -1327,6 +1327,8 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
                 getYouTubeMP4Url( video, doDASH, retryCount )
             end if
         end if
+    else
+        print "HTTP Request returned " + toStr( http.status ) + " in getYouTubeMP4Url"
     end if
     return video["Streams"]
 End Function

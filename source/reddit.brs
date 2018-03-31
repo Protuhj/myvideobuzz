@@ -13,9 +13,8 @@
 '******************************************************************************
 Sub ViewReddits(youtube as Object, url = "videos" as String)
     prefs = getPrefs()
-    consts = getConstants()
-    redditQueryType = firstValid( getEnumValueForType( consts.eREDDIT_QUERIES, prefs.getPrefValue( prefs.RedditFeed.key ) ), "Hot" )
-    redditFilterType = firstValid( getEnumValueForType( consts.eREDDIT_FILTERS, prefs.getPrefValue( prefs.RedditFilter.key ) ), "All" )
+    redditQueryType = firstValid( getEnumValueForType( getConstants().eREDDIT_QUERIES, prefs.getPrefValue( prefs.RedditFeed.key ) ), "Hot" )
+    redditFilterType = firstValid( getEnumValueForType( getConstants().eREDDIT_FILTERS, prefs.getPrefValue( prefs.RedditFilter.key ) ), "All" )
     title = "Reddit (" + redditQueryType
     if ( redditQueryType = "Top" or redditQueryType = "Controversial" ) then
         title = title + " - " + redditFilterType + ")"
@@ -91,9 +90,9 @@ Sub ViewReddits(youtube as Object, url = "videos" as String)
                     return { isContentList: true, content: doQuery( theLink, previous, categories[category_idx] ) }
                 else if ( video[set_idx]["isPlaylist"] = true ) then
                     ' printAA( video[set_idx] )
-                    if ( video[set_idx]["Source"] = consts.sYOUTUBE ) then
+                    if ( video[set_idx]["Source"] = getConstants().sYOUTUBE ) then
                         youtube.FetchVideoList( "GetPlaylistItems", video[set_idx]["TitleSeason"], false, {contentArg: video[set_idx]["PlaylistID"]}, "Loading playlist...", true )
-                    else if ( video[set_idx]["Source"] = consts.sGOOGLE_DRIVE ) then
+                    else if ( video[set_idx]["Source"] = getConstants().sGOOGLE_DRIVE ) then
                         getGDriveFolderContents( video[set_idx] )
                     end if
                     return { isContentList: false, vidIdx: set_idx }
@@ -363,9 +362,9 @@ Function NewRedditVideo(jsonObject As Object, source = "YouTube" as String) As O
     video["Score"]         = jsonObject.data.score
     thumb = ""
     if (jsonObject.data.media <> invalid AND jsonObject.data.media.oembed <> invalid) then
-        thumb = jsonObject.data.media.oembed.thumbnail_url
+        thumb = URLDecode( htmlDecode( jsonObject.data.media.oembed.thumbnail_url ) )
     else
-        thumb = jsonObject.data.thumbnail
+        thumb = URLDecode( htmlDecode( jsonObject.data.thumbnail ) )
     end if
     thumb = getDefaultThumb( thumb, source )
     video["Thumb"]         = thumb
@@ -404,9 +403,9 @@ Function NewRedditGfycatVideo(jsonObject As Object) As Object
     video["Score"]         = jsonObject.data.score
     thumb = ""
     if (jsonObject.data.media <> invalid AND jsonObject.data.media.oembed <> invalid) then
-        thumb = jsonObject.data.media.oembed.thumbnail_url
+        thumb = URLDecode( htmlDecode( jsonObject.data.media.oembed.thumbnail_url ) )
     else
-        thumb = jsonObject.data.thumbnail
+        thumb = URLDecode( htmlDecode( jsonObject.data.thumbnail ) )
     end if
     thumb = getDefaultThumb( thumb, video["Source"] )
     video["Thumb"]         = thumb
@@ -441,9 +440,9 @@ Function NewRedditURLVideo(jsonObject As Object, Source as String) As Object
     video["Score"]         = jsonObject.data.score
     thumb = invalid
     if (jsonObject.data.media <> invalid AND jsonObject.data.media.oembed <> invalid) then
-        thumb = jsonObject.data.media.oembed.thumbnail_url
+        thumb = URLDecode( htmlDecode( jsonObject.data.media.oembed.thumbnail_url ) )
     else
-        thumb = jsonObject.data.thumbnail
+        thumb = URLDecode( htmlDecode( jsonObject.data.thumbnail ) )
     end if
     thumb = getDefaultThumb( thumb, source )
     video["Thumb"]         = thumb
@@ -452,7 +451,7 @@ Function NewRedditURLVideo(jsonObject As Object, Source as String) As Object
 End Function
 
 Function getDefaultThumb( currentThumb as Dynamic, source as String ) as String
-    if ( currentThumb = invalid OR ( Len( currentThumb ) = 0 ) OR currentThumb = "default" OR currentThumb = "nsfw" ) then
+    if ( currentThumb = invalid OR ( Len( currentThumb ) = 0 ) OR currentThumb = "default" OR currentThumb = "nsfw" OR currentThumb.InStr( 0, "embed.ly" ) > 0 ) then
         constants = getConstants()
         if ( Source = constants.sYOUTUBE ) then
             currentThumb = "pkg:/images/no_thumb.jpg"
