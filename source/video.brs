@@ -2135,6 +2135,16 @@ Function getVineMP4Url(video as Object, timeout = 0 as Integer, loginCookie = ""
     return video["Streams"]
 end function
 
+Function getImgurMP4Url(video as Object) as Object
+    video["Streams"].Clear()
+    if ( video["URL"] <> invalid AND video["URL"].inStr(0, ".gifv") > 0 ) then
+        url = video["URL"].Replace(".gifv", ".mp4")
+        video["Streams"].Push( {url: url, bitrate: 0, quality: false, contentid: url} )
+        video["Live"]          = false
+        video["StreamFormat"]  = "mp4"
+    end if
+    return video["Streams"]
+end function
 
 Function video_get_qualities(video as Object) As Integer
     if ( video <> invalid AND video["Streams"] <> invalid ) then
@@ -2154,6 +2164,8 @@ Function video_get_qualities(video as Object) As Integer
             getVidziMP4Url( video )
         else if ( source = constants.sSTREAMABLE ) then
             getStreamableMP4Url( video )
+        else if ( source = constants.sIMGUR ) then
+            getImgurMP4Url( video )
         end if
 
         if ( video["Streams"].Count() > 0 ) then
