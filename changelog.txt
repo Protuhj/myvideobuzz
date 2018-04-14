@@ -1,4 +1,7 @@
 Version 2.3 Build 006
+    - Adds support for Imgur gfys on the reddit component.
+    - Issue #159. Thanks to youvegottabecrazy!
+Version 2.3 Build 006
     - Fix a possible crash on the reddit component.
     - Handle parsing reddit thumbnails a little better, hopefully increasing responsiveness.
 Version 2.3 Build 005
@@ -17,8 +20,3 @@ Version 2.3 Build 002
     - Thanks to youvegottabecrazy on GitHub!
 Version 2.3 Build 001
     - Fixed crash if a request times out when trying to play a video.
-Version 2.3 Build 000
-    - Official release of 2.3.
-Version 2.2 Build 013
-    - Cleaning up Twitch displays.
-    - Version 2.3 candidate build.
