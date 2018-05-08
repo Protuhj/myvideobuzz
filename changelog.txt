@@ -1,4 +1,6 @@
-Version 2.3 Build 006
+Version 2.3 Build 008
+    - Fix Twitch.tv 400 error.
+Version 2.3 Build 007
     - Adds support for Imgur gfys on the reddit component.
     - Issue #159. Thanks to youvegottabecrazy!
 Version 2.3 Build 006
@@ -18,5 +20,3 @@ Version 2.3 Build 003
 Version 2.3 Build 002
     - Fixes liveleak video playback, fixing Issue #152.
     - Thanks to youvegottabecrazy on GitHub!
-Version 2.3 Build 001
-    - Fixed crash if a request times out when trying to play a video.

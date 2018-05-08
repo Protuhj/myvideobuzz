@@ -143,7 +143,7 @@ Function NewTwitchStreamList(jsonObject As Object) As Object
 End Function
 
 Sub newTwitchVideo( channel as String )
-    result = QueryForJson( "http://api.twitch.tv/api/channels/" + channel + "/access_token?as3=t&allow_source=true" + GetAddendum() )
+    result = QueryForJson( "https://api.twitch.tv/api/channels/" + channel + "/access_token?as3=t&allow_source=true" + GetAddendum() )
     'print "Sig: " ; result.json.sig
     'print "Token: " ; result.json.token
     'QueryForJson( "http://usher.twitch.tv/select/" + channel + ".json?nauthsig=" + result.json.sig +"&nauth=" + result.json.token )'+ "&allow_source=true" )
