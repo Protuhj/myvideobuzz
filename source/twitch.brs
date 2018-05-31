@@ -80,7 +80,7 @@ End Sub
 Sub ViewTwitchStreams(gameName as String, urlToQuery = invalid as dynamic, totalDisplayed = 0 as dynamic )
     'https://api.twitch.tv/kraken/games/top?hls=true
     title = gameName
-    screen = uitkPreShowPosterMenu( "arced-16x9", title )
+    screen = uitkPreShowPosterMenu( "flat-episodic-16x9", title )
     screen.showMessage( "Loading Streams for " + gameName )
     if ( urlToQuery = invalid ) then
         urlToQuery = "https://api.twitch.tv/kraken/streams?limit=50&game=" + URLEncode(gameName)
@@ -232,7 +232,7 @@ Function NewTwitchStreamLink(jsonObject As Object) As Object
     game["Thumb"]                   = jsonObject.preview.large
     game["ContentType"]             = "game"
     game["Title"]                   = jsonObject.channel.game + " [Viewers: " + tostr( jsonObject.viewers ) + "]"
-    game["FullDescription"]         = ""
+    game["FullDescription"]         = jsonObject.channel.status
     game["Description"]             = jsonObject.channel.status
     game["ShortDescriptionLine1"]   = game["TitleSeason"]
     game["ShortDescriptionLine2"]   = game["Title"]

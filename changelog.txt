@@ -1,3 +1,6 @@
+Version 2.3 Build 009
+    - Fix Streamable playback.
+    - Changed Twitch component so stream descriptions are visible.
 Version 2.3 Build 008
     - Fix Twitch.tv 400 error.
 Version 2.3 Build 007
@@ -17,6 +20,3 @@ Version 2.3 Build 004
     - Addresses issue #157.
 Version 2.3 Build 003
     - Attempts to fix compilation issues on Roku 1, fixing Issue #157.
-Version 2.3 Build 002
-    - Fixes liveleak video playback, fixing Issue #152.
-    - Thanks to youvegottabecrazy on GitHub!
