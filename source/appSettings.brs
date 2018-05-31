@@ -894,6 +894,7 @@ Function LoadConstants() as Object
     this.sTWITCH            = "Twitch"
     this.sSTREAMABLE        = "Streamable"
     this.sIMGUR             = "Imgur"
+    this.sREDDIT            = "v.redd.it"
 
     ' Reddit Query Indices
     this.sRED_HOT           = 0

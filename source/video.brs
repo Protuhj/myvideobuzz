@@ -2149,6 +2149,21 @@ Function getImgurMP4Url(video as Object) as Object
     return video["Streams"]
 end function
 
+Function getRedditHLSUrl(video as Object) as Object
+    video["Streams"].Clear()
+    if ( video["URL"] <> invalid ) then
+        idRegex = CreateObject("roRegex", "it\/(.*)$", "ig")
+        idMatch = idRegex.Match( video["URL"] )
+        if ( idMatch.Count() > 1 ) then
+            url = "https://v.redd.it/" + idMatch[1] + "/HLSPlaylist.m3u8"
+            video["Streams"].Push( {url: url, bitrate: 0, quality: false, contentid: url} )
+            video["Live"]          = false
+            video["StreamFormat"]  = "hls"
+        end if
+    end if
+    return video["Streams"]
+end function
+
 
 Function video_get_qualities(video as Object) As Integer
     if ( video <> invalid AND video["Streams"] <> invalid ) then
@@ -2170,6 +2185,8 @@ Function video_get_qualities(video as Object) As Integer
             getStreamableMP4Url( video )
         else if ( source = constants.sIMGUR ) then
             getImgurMP4Url( video )
+        else if ( source = constants.sREDDIT ) then
+            getRedditHLSUrl( video )
         end if
 
         if ( video["Streams"].Count() > 0 ) then

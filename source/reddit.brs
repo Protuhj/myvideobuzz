@@ -237,6 +237,9 @@ Function NewRedditVideoList(jsonObject As Object) As Object
         else if ((domain = "imgur.com" OR domain.InStr( 0, ".imgur.com" ) > 0) AND record.data.url.inStr(0, ".gifv") > 0 ) then
             video = NewRedditURLVideo( record, constants.sIMGUR )
             supported = true
+        else if (domain = "v.redd.it" ) then
+            video = NewRedditURLVideo( record, constants.sREDDIT )
+            supported = true
         end if
         if ( supported = true AND video <> invalid AND video["ID"] <> invalid AND video["ID"] <> "" ) then
             videoList.Push( video )
@@ -474,6 +477,8 @@ Function getDefaultThumb( currentThumb as Dynamic, source as String ) as String
             currentThumb = "pkg:/images/streamable.png"
         else if ( Source = constants.sIMGUR ) then
             currentThumb = "pkg:/images/imgur.png"
+        else if ( Source = constants.sREDDIT ) then
+            currentThumb = "pkg:/images/reddit.jpg"
         else
             currentThumb = "pkg:/images/no_thumb.jpg"
         end if
