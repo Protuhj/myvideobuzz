@@ -1,3 +1,6 @@
+Version 2.3 Build 011
+    - Fixes Vevo playback
+    - Notice: Do not expect further updates, as the channel will be effectively abandoned due to Roku blocking developer mode access.
 Version 2.3 Build 010
     - Adds support for v.redd.it videos on the reddit component.
 Version 2.3 Build 009
@@ -8,15 +11,3 @@ Version 2.3 Build 008
 Version 2.3 Build 007
     - Adds support for Imgur gfys on the reddit component.
     - Issue #159. Thanks to youvegottabecrazy!
-Version 2.3 Build 006
-    - Fix a possible crash on the reddit component.
-    - Handle parsing reddit thumbnails a little better, hopefully increasing responsiveness.
-Version 2.3 Build 005
-    - Adds support for domains on the reddit feature.
-    - You will need to use an external keyboard (Phone, Remoku.tv) to enter in periods, like in youtube.com.
-    - Issue #155. Thanks to youvegottabecrazy!
-Version 2.3 Build 004
-    - Adds a General Preference to enable Roku 1 support.
-    - This disables some features that are not supported on the Roku 1.
-    - Some dialogs have too much text if this is enabled.
-    - Addresses issue #157.
