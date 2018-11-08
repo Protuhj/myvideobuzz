@@ -1,6 +1,8 @@
-Version 2.3 Build 011
+Version 2.3 Build 012
     - Fixes Vevo playback
     - Notice: Do not expect further updates, as the channel will be effectively abandoned due to Roku blocking developer mode access.
+Version 2.3 Build 011
+    - Fixes Vevo playback
 Version 2.3 Build 010
     - Adds support for v.redd.it videos on the reddit component.
 Version 2.3 Build 009

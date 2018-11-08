@@ -163,12 +163,20 @@ Function getMainfuncFromJS(jsBody as String) as Dynamic
                 print( "Found main function: " + funcname )
                 funcBody = extractFunctionFromJS( funcname, jsBody )
             else
-                fpattern = CreateObject( "roRegex", "\bc\s*&&\s*d\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\('", "" )
+                fpattern = CreateObject( "roRegex", "\bc\s*&&\s*d\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(", "" )
                 matches = fpattern.Match( jsBody )
                 if ( matches.Count() > 1 ) then
                     funcname = matches[1]
                     print( "Found main function: " + funcname )
                     funcBody = extractFunctionFromJS( funcname, jsBody )
+                else
+                    fpattern = CreateObject( "roRegex", "\bc\s*&&\s*d\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(", "" )
+                    matches = fpattern.Match( jsBody )
+                    if ( matches.Count() > 1 ) then
+                        funcname = matches[1]
+                        print( "Found main function: " + funcname )
+                        funcBody = extractFunctionFromJS( funcname, jsBody )
+                    end if
                 end if
             end if
         end if
