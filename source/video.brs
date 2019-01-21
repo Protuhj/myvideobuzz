@@ -1772,15 +1772,19 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                 end if
             end if
         else
-            hlsUrl = CreateObject("roRegex", "hlsvp=([^(" + Chr(34) + "|&|$)]*)", "").Match(htmlString)
+            'hlsUrl = CreateObject("roRegex", "hlsvp=([^(" + Chr(34) + "|&|$)]*)", "").Match(htmlString)
+            ' htmlString is encoded still at this point
+            ' new raw (Jan 2019): "hlsManifestUrl.+?(https?%3A.+?)%22
+            hlsUrl = CreateObject("roRegex", "hlsManifestUrl.+?(https?%3A.+?)%22", "i").Match(htmlString)
             if (hlsUrl.Count() > 1) then
                 urlDecoded = URLDecode(URLDecode(URLDecode(hlsUrl[1])))
+                'print "raw: " ; hlsUrl[1]
+                'print "urlDecoded: " ; urlDecoded
                 if ( Left( LCase( urlDecoded ), 5) = "https" ) then
                     isSSL = true
                 else if ( isSSL <> true )
                     isSSL = false
                 end if
-                'print "Found hlsVP: " ; urlDecoded
                 video["Streams"].Clear()
                 video["Live"]              = true
                 ' Set the PlayStart sufficiently large so it starts at 'Live' position
@@ -1792,6 +1796,8 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                 video["MaxBandwidth"] = firstValid( getEnumValueForType( constants.eHLS_MAX_BANDWIDTH, prefs.getPrefValue( constants.pHLS_MAX_BANDWIDTH ) ), "0" ).ToInt()
                 video["Streams"].Push({url: urlDecoded, bitrate: 0, quality: false, contentid: -1})
                 video["SSL"] = isSSL
+            else
+                print "Failed to extract Live Stream URL"
             end if
 
         end if
