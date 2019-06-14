@@ -44,7 +44,7 @@ Function InitYouTube() As Object
         RegDelete("sort", "Search")
         RegWrite( "SearchSortVersion", this.searchSortHistory, "Settings" )
     end if
-    
+
     this.searchLive = ""
     tmpLive = RegRead("live", "Search")
     if (tmpLive <> invalid) then
@@ -157,6 +157,9 @@ Function InitYouTube() As Object
     this.buffer[512] = 0
     this.dashManifestContents = invalid
 
+    ' For Twitch Streaming Annoyance-fixing
+    this.twitchM3U8URL = invalid
+
     ' Regex found on the internets here: http://stackoverflow.com/questions/3452546/javascript-regex-how-to-get-youtube-video-id-from-url (with modifications)
     ' Pre-compile the YouTube video ID regex
     this.ytIDRegex = CreateObject("roRegex", "(?:youtube(?:-nocookie)?.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu.be\/)([a-zA-Z0-9_-]{11})", "i")
@@ -167,6 +170,8 @@ Function InitYouTube() As Object
     this.regexTimestampHours = CreateObject( "roRegex", "(\d+)h+", "i" )
     this.regexTimestampMinutes = CreateObject( "roRegex", "(\d+)m+", "i" )
     this.regexTimestampSeconds = CreateObject( "roRegex", "(\d+)s+", "i" )
+
+    this.httpTargetRegex = CreateObject( "roRegex", "GET\s+\/(\w+)\s+HTTP", "ig" )
 
     patterns = {}
     ' patterns.split_or_join = CreateObject( "roRegex", "(\w+)=\1\.(?:split|join)\(" + Quote() + "" + Quote() + ")$", "" )
@@ -819,7 +824,7 @@ Function newVideoListFromJSON_impl(jsonList As Object) As Object
 End Function
 
 Function newVideoFromJSON_impl(jsonVideoItem as Object) As Dynamic
-    if jsonVideoItem.Lookup("contentDetails") = invalid then 
+    if jsonVideoItem.Lookup("contentDetails") = invalid then
         return invalid
     end if
     video                   = CreateObject("roAssociativeArray")
@@ -1241,6 +1246,7 @@ Function DisplayVideo(content As Object)
     yt.AddHistory(content)
     ' Reset here so we don't attempt to play the stale contents again
     yt.dashManifestContents = invalid
+    yt.twitchM3U8URL = invalid
     return ret
 End Function
 
@@ -1274,7 +1280,7 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
         ' Includes dashmpd, but doesn't work with protected: unplugged
         'url = "http://www.youtube.com/get_video_info?el=info&video_id=" + video["ID"]
         if (retryCount = 0) then
-            url = "http://www.youtube.com/get_video_info?el=detailpage&video_id=" + video["ID"]
+            url = "https://www.youtube.com/get_video_info?el=detailpage&video_id=" + video["ID"]
             if (getYoutube().STSVal <> invalid) then
                 url = url + "&sts=" + getYoutube().STSVal
             end if
@@ -1283,7 +1289,7 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
             isSSL = true
         end if
     else if (retryCount = 0) then
-        url = "http://www.youtube.com/get_video_info?el=detailpage&video_id=" + video["ID"]
+        url = "https://www.youtube.com/get_video_info?el=detailpage&video_id=" + video["ID"]
         if (getYoutube().STSVal <> invalid) then
             url = url + "&sts=" + getYoutube().STSVal
         end if
@@ -1353,21 +1359,25 @@ Function dashManifest( videoID as String, formatData, duration )
             encodedURL = audioData.url.DecodeUri().DecodeUri().GetEntityEncode()
         else
             waitDialog = ShowPleaseWait( "Creating DASH Manifest", "Decoding signature..." )
-            signatureValObj = decodeEncryptedS( videoID, firstSDecrypt, audioData.s, waitDialog )
+            signatureValObj = decodeEncryptedS( videoID, firstSDecrypt, URLDecode( URLDecode( audioData.s ) ), waitDialog )
             firstSDecrypt = false
             if ( signatureValObj.didFail = true ) then
                 waitDialog.Close()
                 return signatureValObj
             else
-                encodedURL = audioData.url.DecodeUri().DecodeUri().GetEntityEncode() + "&amp;signature=" + signatureValObj.signature
+                spField = "signature"
+                if ( audioData["sp"] <> invalid ) then
+                    spField = audioData.sp
+                end if
+                encodedURL = audioData.url.DecodeUri().DecodeUri().GetEntityEncode() + "&amp;" + spField + "=" + signatureValObj.signature
             end if
         end if
         ' print "Audio Encoded URL is: " + encodedURL
         MPDString = MPDString + "<AdaptationSet id=" + Quote() + "0" + Quote() + " mimeType=" + Quote() + "audio/mp4" + Quote() + " subsegmentAlignment=" + Quote() + "true" + Quote() + ">"
         MPDString = MPDString + "<Role schemeIdUri=" + Quote() + "urn:mpeg:DASH:role:2011" + Quote() + " value=" + Quote() + "main" + Quote() + "/>"
-        MPDString = MPDString + "<Representation id=" + Quote() + "140" + Quote() + " codecs=" + Quote() + "mp4a.40.2" + Quote() + " audioSamplingRate=" + Quote() + "44100" + Quote() + " startWithSAP=" + Quote() + "1" + Quote() + " bandwidth=" + Quote() + toStr( audioData.bitrate.ToInt() / 8 ) + Quote() + ">"
+        MPDString = MPDString + "<Representation id=" + Quote() + "140" + Quote() + " codecs=" + Quote() + "mp4a.40.2" + Quote() + " audioSamplingRate=" + Quote() + "44100" + Quote() + " startWithSAP=" + Quote() + "1" + Quote() + " bandwidth=" + Quote() + toStr( Int( audioData.bitrate.ToInt() / 8 ) ).Trim() + Quote() + ">"
         MPDString = MPDString + "<AudioChannelConfiguration schemeIdUri=" + Quote() + "urn:mpeg:dash:23003:3:audio_channel_configuration:2011" + Quote() + " value=" + Quote() + "2" + Quote() + "/>"
-        MPDString = MPDString + "<BaseURL yt:contentLength=" + Quote() + toStr( audioData.clen.ToInt() / 8 ) + Quote() + ">" + encodedURL + "</BaseURL>"
+        MPDString = MPDString + "<BaseURL yt:contentLength=" + Quote() + toStr( Int( audioData.clen.ToInt() / 8 ) ).Trim() + Quote() + ">" + encodedURL + "</BaseURL>"
         MPDString = MPDString + "<SegmentBase indexRange=" + Quote() + audioData.index + Quote() + " indexRangeExact=" + Quote() + "true" + Quote() + ">"
         MPDString = MPDString + "<Initialization range=" + Quote() + audioData.init + Quote() + "/>"
         MPDString = MPDString + "</SegmentBase></Representation></AdaptationSet>"
@@ -1376,44 +1386,52 @@ Function dashManifest( videoID as String, formatData, duration )
             for each formatKey in formatData
                 format = formatData[ formatKey ]
                 if ( format.type.InStr( "audio" ) = -1 ) then
-                    ' Check for encoded signature
-                    if (format.s = invalid) then
-                        videoURL = format.url.DecodeUri().DecodeUri().GetEntityEncode()
-                    else
-                        if ( waitDialog <> invalid ) then
-                            if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
-                                waitDialog.UpdateText( "Decoding next video URL" )
+                    if ( format.itag.ToInt() < 210 ) then
+                        ' Check for encoded signature
+                        if (format.s = invalid) then
+                            videoURL = format.url.DecodeUri().DecodeUri().GetEntityEncode()
+                        else
+                            if ( waitDialog <> invalid ) then
+                                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
+                                    waitDialog.UpdateText( "Decoding next video URL" )
+                                else
+                                    ' Don't update the Dialog, since Roku 1 doesn't support UpdateText
+                                end if
                             else
-                                ' Don't update the Dialog, since Roku 1 doesn't support UpdateText
+                                waitDialog = ShowPleaseWait( "Creating DASH Manifest", "Decoding signature..." )
                             end if
-                        else
-                            waitDialog = ShowPleaseWait( "Creating DASH Manifest", "Decoding signature..." )
+                            'print "s: " ; format.s
+                            'print "s: " ;  URLDecode( URLDecode( format.s ) )
+                            signatureValObj = decodeEncryptedS( videoID, firstSDecrypt, URLDecode( URLDecode( format.s ) ), waitDialog )
+                            firstSDecrypt = false
+                            if ( signatureValObj.didFail = true ) then
+                                waitDialog.Close()
+                                return signatureValObj
+                            else
+                                spField = "signature"
+                                if ( format["sp"] <> invalid ) then
+                                    spField = format.sp
+                                end if
+                                videoURL = format.url.DecodeUri().DecodeUri().GetEntityEncode() + "&amp;" + spField + "=" + signatureValObj.signature
+                            end if
                         end if
-                        signatureValObj = decodeEncryptedS( videoID, firstSDecrypt, format.s, waitDialog )
-                        firstSDecrypt = false
-                        if ( signatureValObj.didFail = true ) then
-                            waitDialog.Close()
-                            return signatureValObj
-                        else
-                            videoURL = format.url.DecodeUri().DecodeUri().GetEntityEncode() + "&amp;signature=" + signatureValObj.signature
-                        end if
+                        'print "Video Encoded URL is: " + videoURL
+                        formatTypeEscaped = format.type.Unescape().Unescape()
+                        codecStr = codecRegex.Match( formatTypeEscaped )[1]
+                        lenStr = toStr( Int( format.clen.ToInt() / 8 ) ).Trim()
+                        resolutionSplit = format.size.Split( "x" )
+                        widthStr = resolutionSplit[0]
+                        heightStr = resolutionSplit[1]
+                        bandwidthStr = toStr( Int( format.bitrate.ToInt() / 8 ) ).Trim()
+                        MPDString = MPDString + "<AdaptationSet id=" + Quote() + toStr( setID ) + Quote() + " mimeType=" + Quote() + formatTypeEscaped.split( ";" )[0] + Quote() + " subsegmentAlignment=" + Quote() + "true" + Quote() + ">"
+                        MPDString = MPDString + "<Role schemeIdUri=" + Quote() + "urn:mpeg:DASH:role:2011" + Quote() + " value=" + Quote() + "main" + Quote() + "/>"
+                        MPDString = MPDString + "<Representation id=" + Quote() + format.itag + Quote() + " codecs=" + Quote() + codecStr + Quote() + " width=" + Quote() + widthStr + Quote() + " height=" + Quote() + heightStr + Quote() + " startWithSAP=" + Quote() + "1" + Quote() + " maxPlayoutRate=" + Quote() + "1" + Quote() + " bandwidth=" + Quote() + bandwidthStr + Quote() + " frameRate=" + Quote() + format.fps + Quote() + ">"
+                        MPDString = MPDString + "<BaseURL yt:contentLength=" + Quote() + lenStr + Quote() + ">" + videoURL + "</BaseURL>"
+                        MPDString = MPDString + "<SegmentBase indexRange=" + Quote() + format.index + Quote() + " indexRangeExact=" + Quote() + "true" + Quote() + ">"
+                        MPDString = MPDString + "<Initialization range=" + Quote() + format.init + Quote() + "/>"
+                        MPDString = MPDString + "</SegmentBase></Representation></AdaptationSet>"
+                        setID = setID + 1
                     end if
-                    'print "Video Encoded URL is: " + videoURL
-                    formatTypeEscaped = format.type.Unescape().Unescape()
-                    codecStr = codecRegex.Match( formatTypeEscaped )[1]
-                    lenStr = toStr( format.clen.ToInt() / 8 )
-                    resolutionSplit = format.size.Split( "x" )
-                    widthStr = resolutionSplit[0]
-                    heightStr = resolutionSplit[1]
-                    bandwidthStr = toStr( format.bitrate.ToInt() / 8 )
-                    MPDString = MPDString + "<AdaptationSet id=" + Quote() + toStr( setID ) + Quote() + " mimeType=" + Quote() + formatTypeEscaped.split( ";" )[0] + Quote() + " subsegmentAlignment=" + Quote() + "true" + Quote() + ">"
-                    MPDString = MPDString + "<Role schemeIdUri=" + Quote() + "urn:mpeg:DASH:role:2011" + Quote() + " value=" + Quote() + "main" + Quote() + "/>"
-                    MPDString = MPDString + "<Representation id=" + Quote() + format.itag + Quote() + " codecs=" + Quote() + codecStr + Quote() + " width=" + Quote() + widthStr + Quote() + " height=" + Quote() + heightStr + Quote() + " startWithSAP=" + Quote() + "1" + Quote() + " maxPlayoutRate=" + Quote() + "1" + Quote() + " bandwidth=" + Quote() + bandwidthStr + Quote() + " frameRate=" + Quote() + format.fps + Quote() + ">"
-                    MPDString = MPDString + "<BaseURL yt:contentLength=" + Quote() + lenStr + Quote() + ">" + videoURL + "</BaseURL>"
-                    MPDString = MPDString + "<SegmentBase indexRange=" + Quote() + format.index + Quote() + " indexRangeExact=" + Quote() + "true" + Quote() + ">"
-                    MPDString = MPDString + "<Initialization range=" + Quote() + format.init + Quote() + "/>"
-                    MPDString = MPDString + "</SegmentBase></Representation></AdaptationSet>"
-                    setID = setID + 1
                 end if
             end for
         end if
@@ -1542,12 +1560,13 @@ Function createDASHManifest( videoID, htmlString )
                     adaptiveFmtsString = adaptiveFmtsStringMatch[1]
                     commaSplit = commaRegex.Split( adaptiveFmtsString )
                     for each commaItem in commaSplit
-                        ' print "##############"
+                        'print "##############"
                         settings = {}
                         ampersandSplit = ampersandRegex.split( commaItem )
                         for each ampersandItem in ampersandSplit
-                            ' print "ampersandItem: " + ampersandItem
+                            'print "ampersandItem: " + ampersandItem
                             equalsSplit = equalsRegex.split( ampersandItem )
+                            'print equalsSplit[0] ; "=" ; equalsSplit[1]
                             settings[equalsSplit[0]] = equalsSplit[1]
                         end for
                         formatData[ settings.itag ] = settings
@@ -1837,7 +1856,7 @@ Sub getGDriveFolderContents(video as Object, timeout = 0 as Integer, loginCookie
         port = CreateObject( "roMessagePort" )
         ut = CreateObject( "roUrlTransfer" )
         ut.SetPort( port )
-        ut.AddHeader( "User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:28.0) Gecko/20100101 Firefox/28.0" )
+        ut.AddHeader( "User-Agent", getConstants().USER_AGENT )
         ut.AddHeader( "Cookie", loginCookie )
         ut.SetUrl( url )
         if ( isSSL = true ) then
@@ -1939,7 +1958,7 @@ Function getGfycatMP4Url(video as Object, timeout = 0 as Integer, loginCookie = 
         port = CreateObject( "roMessagePort" )
         ut = CreateObject( "roUrlTransfer" )
         ut.SetPort( port )
-        ut.AddHeader( "User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:28.0) Gecko/20100101 Firefox/28.0" )
+        ut.AddHeader( "User-Agent", getConstants().USER_AGENT )
         ut.AddHeader( "Cookie", loginCookie )
         ut.SetUrl( url )
         ut.SetCertificatesFile( "common:/certs/ca-bundle.crt" )
@@ -1983,7 +2002,7 @@ Function getLiveleakMP4Url(video as Object, timeout = 0 as Integer, loginCookie 
     if ( video["URL"] <> invalid ) then
         liveleakMP4UrlRegex = CreateObject( "roRegex", "source\s+src=\" + Quote() + "(.*)\" + Quote() + "[^>]*label=\" + Quote() + "(SD|360p)\" + Quote() , "ig" )
         liveleakMP4HDUrlRegex = CreateObject( "roRegex", "source\s+src=\" + Quote() + "(.*)\" + Quote() + "[^>]*label=\" + Quote() + "HD\" + Quote(), "ig" )
-        
+
         url = video["URL"]
         port = CreateObject( "roMessagePort" )
         ut = CreateObject( "roUrlTransfer" )
@@ -2104,7 +2123,7 @@ Function getVineMP4Url(video as Object, timeout = 0 as Integer, loginCookie = ""
         port = CreateObject( "roMessagePort" )
         ut = CreateObject( "roUrlTransfer" )
         ut.SetPort( port )
-        ut.AddHeader( "User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:28.0) Gecko/20100101 Firefox/28.0" )
+        ut.AddHeader( "User-Agent", getConstants().USER_AGENT )
         ut.AddHeader( "Cookie", loginCookie )
         if ( isSSL = true ) then
             ut.SetCertificatesFile( "common:/certs/ca-bundle.crt" )
@@ -2121,7 +2140,7 @@ Function getVineMP4Url(video as Object, timeout = 0 as Integer, loginCookie = ""
                     if ( status = 200 ) then
                         responseString = msg.GetString()
                         jsonObj = ParseJson( responseString )
-                        
+
                         if ( jsonObj <> invalid AND jsonObj.videoUrl <> invalid ) then
                             video["Streams"].Push( {url: URLDecode( jsonObj.videoUrl ), bitrate: 512, quality: false, contentid: video["ID"]} )
                             video["Live"]          = false
@@ -2297,7 +2316,7 @@ End Sub
 Function QueryForJson( url as String ) As Object
     http = NewHttp( url )
     headers = { }
-    headers["User-Agent"] = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:28.0) Gecko/20100101 Firefox/28.0"
+    headers["User-Agent"] = getConstants().USER_AGENT
     http.method = "GET"
     rsp = http.getToStringWithTimeout( 10, headers )
 

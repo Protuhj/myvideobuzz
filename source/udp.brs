@@ -45,7 +45,7 @@ Sub UnicastInit(youtube as Object)
     end if
     'youtube.dateObj.Mark()
     'youtube.udp_created = youtube.dateObj.AsSeconds()
-
+    print "TCP Listen Socket Configured, ID: " + toStr( tcp.getID() )
     youtube.tcp_socket = tcp
     youtube.msgport_tcp = msgPort
     youtube.tcp_created = 0
@@ -138,10 +138,12 @@ Sub CheckForUnicast()
     messagePort = youtube.msgport_tcp
     buffer = youtube.buffer
     message = youtube.msgport_tcp.GetMessage()
-
     text = youtube.dashManifestContents
-    if ( text = invalid or len( text ) = 0 ) then
+    if ( youtube.twitchM3U8URL = invalid AND (text = invalid or len( text ) = 0 ) ) then
         return
+    end if
+    if ( youtube.twitchM3U8URL <> invalid ) then
+        youtube.dashManifestContents = invalid
     end if
     'print "MPD is this many bytes: " + toStr( len ( text ) )
     while (message <> invalid)
@@ -151,7 +153,7 @@ Sub CheckForUnicast()
                 ' New
                 newConnection = tcpListen.accept()
                 if (newConnection = Invalid) then
-                    print "accept failed"
+                    ' print "accept failed"
                 else
                     ' print "accepted new connection " newConnection.getID()
                     newConnection.notifyReadable(true)
@@ -164,24 +166,43 @@ Sub CheckForUnicast()
                 if (connection <> invalid) then
                     closed = false
                     if (connection.isReadable()) then
-                        received = connection.receive(buffer, 0, 512)
-                        'print "received is " received
-                        if (received > 0) then
+                        'received = connection.receive(buffer, 0, 512)
+                        data = connection.receiveStr(4096) ' max 4096 characters
+                        print "received byte count: " len(data)
+                        'print "received byte string: " data
+                        'if ( received > 0 ) then
+                        if (data <> invalid AND len(data) > 0) then
+                            'print "received is " ; data
                             if ( connection.isWritable() ) then
-                                response = "HTTP/1.1 200 OK" + rn
-                                'response = response + "Date: Wed, 24 Jan 2018 05:04:22 GMT" + rn
-                                response = response + "Content-Type: text/html; charset=UTF-8" + rn
-                                response = response + "Content-Length: " + toStr( len( text ) ) + rn
-                                response = response + "Accept-Ranges: bytes" + rn
-                                response = response + "Connection: close" + rn + rn
-                                response = response + text
-                                sent = connection.sendStr(response)
-                                print "Sent " + tostr(sent) + " bytes"
+                                if ( text = invalid AND youtube.twitchM3U8URL <> invalid ) then
+                                    matches = youtube.httpTargetRegex.Match( data )
+                                    if ( matches.Count() > 1 ) then
+                                        updateTwitchSubHLSText( youtube.twitchM3U8URL[ matches[1] ] )
+                                        text = youtube.dashManifestContents
+                                        youtube.dashManifestContents = invalid
+                                    end if
+                                end if
+                                ' Dunno
+                                if (text = invalid or len( text ) = 0 ) then
+                                    text = ""
+                                    print "Invalid Twitch M3U8 text!"
+                                else
+                                    response = "HTTP/1.1 200 OK" + rn
+                                    'response = response + "Date: Wed, 24 Jan 2018 05:04:22 GMT" + rn
+                                    response = response + "Content-Type: text/html; charset=UTF-8" + rn
+                                    response = response + "Content-Length: " + toStr( len( text ) ) + rn
+                                    response = response + "Accept-Ranges: bytes" + rn
+                                    response = response + "Connection: close" + rn + rn
+                                    response = response + text
+                                    sent = connection.sendStr(response)
+                                    print "Sent " + tostr(sent) + " bytes"
+                                    'print text
+                                end if
                             else
-                            print "Socket not writeable!"
+                                print "Socket not writeable!"
                             end if
                             'closed = true
-                        else if (received = 0) then
+                        else ' if (received = 0) then
                             ' client closed
                             closed = true
                         end if
@@ -211,10 +232,10 @@ Sub handleYouTubePush( youtubeID as String )
             res = youtube.ExecBatchQueryV3( ids )
             videos = youtube.newVideoListFromJSON( res.items )
             if (videos.Count() > 0) then
-            
+
                 metadata = GetVideoMetaData( videos )
                 if (metadata.Count() > 0) then
-                
+
                     theVideo = metadata[0]
                     result = video_get_qualities(theVideo)
                     if (result = 0) then
@@ -236,17 +257,40 @@ Sub handleYouTubePush( youtubeID as String )
     end if
 End Sub
 
+Sub handleRoosterteethPush( rtURL as String )
+    youtube = getYoutube()
+    jsonURL = "https://svod-be.roosterteeth.com/api/v1/episodes/" + rtURL + "/videos"
+    rsp = QueryForJson( jsonURL )
+
+    if ( rsp.status = 200 ) then
+        jsonObj = rsp.json
+        videoURL = jsonObj.data[0].attributes.url
+        meta = newForcedVideo( videoURL, "hls" )
+        meta["Title"] = jsonObj.data[0].attributes.content_slug
+        meta["Description"] = jsonObj.data[0].attributes.content_slug
+        DisplayVideo( meta )
+    else
+        ShowErrorDialog( "Error querying Roosterteeth (Code: " + tostr( rsp.status ) + ")", "RT Error" )
+    end if
+End Sub
+
 Sub handleDirectURLPush( URL as String )
-     youtube = getYoutube()
+    rtRegex = CreateObject( "roRegex", "https:\/\/roosterteeth.com\/episode\/(.*)", "ig" )
+    youtube = getYoutube()
     tokens = strTokenize( URL, ";" )
     if ( tokens.Count() = 2 ) then
         'print "My device ID: " ; youtube.device_id
         if (youtube.device_id = tokens[0]) then
-            metaD = newForcedVideo(tokens[1])
-            if (metaD <> invalid) then
-                DisplayVideo(metaD)
+            rtMatch = rtRegex.Match( tokens[1] )
+            if ( rtMatch.Count() > 1 ) then
+                handleRoosterteethPush( rtMatch[1] )
             else
-                print "Failed to set video type for " ; tokens[1]
+                metaD = newForcedVideo(tokens[1])
+                if (metaD <> invalid) then
+                    DisplayVideo(metaD)
+                else
+                    print "Failed to set video type for " ; tokens[1]
+                end if
             end if
         end if
         print "Roku ID: " ; tokens[0]
@@ -254,7 +298,7 @@ Sub handleDirectURLPush( URL as String )
     end if
 End Sub
 
-Function newForcedVideo(URL as String) as Dynamic
+Function newForcedVideo(URL as String, typeHint = invalid as Dynamic ) as Dynamic
 
     constants = getConstants()
     meta = CreateObject("roAssociativeArray")
@@ -266,10 +310,16 @@ Function newForcedVideo(URL as String) as Dynamic
     meta["Title"]                  = "Forced play from external source."
     meta["Description"]            = "Received from external source."
     meta["Length"]                 = 0
-    if (right(lcase(URL), 4) = "m3u8") then
+
+    if ( typeHint <> invalid ) then
+        meta["StreamFormat"]       = typeHint
+        if (typeHint = "hls") then
+            meta["MaxBandwidth"]       = firstValid( getEnumValueForType( constants.eHLS_MAX_BANDWIDTH, getPrefs().getPrefValue( constants.pHLS_MAX_BANDWIDTH ) ), "0" ).ToInt()
+        end if
+    else if (right(lcase(URL), 4) = "m3u8") then
         meta["StreamFormat"]       = "hls"
         meta["MaxBandwidth"]       = firstValid( getEnumValueForType( constants.eHLS_MAX_BANDWIDTH, getPrefs().getPrefValue( constants.pHLS_MAX_BANDWIDTH ) ), "0" ).ToInt()
-        
+
     else if (right(lcase(URL), 3) = "mp4") then
         meta["StreamFormat"]           = "mp4"
     else
@@ -282,7 +332,7 @@ Function newForcedVideo(URL as String) as Dynamic
     end if
     meta["Live"]                   = false
     meta["Streams"]                = []
-    meta["Streams"].Push( {url: URL, bitrate: 512, quality: false, contentid: "fake"} )
+    meta["Streams"].Push( {url: URL, contentid: "fake"} )
     meta["Linked"]                 = ""
     meta["Source"]                 = "External"
     meta["BookmarkPosition"]       = 0

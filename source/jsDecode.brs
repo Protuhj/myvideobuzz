@@ -38,7 +38,7 @@ Function get_js_sm(video_id as String, waitDialog = invalid as Dynamic) as Dynam
     jsplayer = CreateObject( "roRegex", Quote() + "assets" + Quote() + "\s*:\s*\{.*?" + Quote() + "js" + Quote() + "\s*:\s*" + Quote() + "(.*?)" + Quote(), "" )
     sts_val = CreateObject( "roRegex", Quote() + "sts" + Quote() + "\s*:\s*(\d+)", "" )
     slashRegex = CreateObject( "roRegex", "\\\/", "" )
-    watch_url = "http://www.youtube.com/watch?v=" + video_id
+    watch_url = "https://www.youtube.com/watch?v=" + video_id
     http = NewHttp( watch_url )
     headers = { }
     headers["User-Agent"] = getConstants().USER_AGENT

@@ -13,13 +13,13 @@
 ' @param url an optional URL with the multireddit to query, or the full link to parse. This is used when hitting the 'More Results' or 'Back' buttons on the video list page.
 '     multireddits look like this: videos+funny+humor for /r/videos, /r/funny, and /r/humor
 '******************************************************************************
-Sub ViewTwitch(youtube as Object, urlToQuery = "https://api.twitch.tv/kraken/games/top?hls=true&limit=50" as String )
+Sub ViewTwitch(youtube as Object, urlToQuery = "https://api.twitch.tv/kraken/games/top?hls=true&limit=20" as String )
     'https://api.twitch.tv/kraken/games/top?hls=true
     title = "Twitch Games"
     screen = uitkPreShowPosterMenu( "arced-portrait", title )
     screen.showMessage( "Loading Twitch games..." )
     rsp = QueryForJson( urlToQuery + GetAddendum())
-    
+
     if ( rsp.status = 200 ) then
         gameList = newTwitchGameList( rsp.json )
 
@@ -86,7 +86,7 @@ Sub ViewTwitchStreams(gameName as String, urlToQuery = invalid as dynamic, total
         urlToQuery = "https://api.twitch.tv/kraken/streams?limit=50&game=" + URLEncode(gameName)
     end if
     rsp = QueryForJson( urlToQuery + GetAddendum())
-    
+
     if ( rsp.status = 200 ) then
         streamList = NewTwitchStreamList( rsp.json )
         totalDisplayed = totalDisplayed + streamList.Count()
@@ -142,12 +142,58 @@ Function NewTwitchStreamList(jsonObject As Object) As Object
     return streamList
 End Function
 
+Sub updateTwitchSubHLSText( m3u8URL as String )
+    if ( m3u8URL <> invalid ) then
+        headers = { }
+        headers["User-Agent"] = getConstants().USER_AGENT
+        http = NewHttp( m3u8URL )
+        hlsText = http.getToStringWithTimeout(10, headers)
+        if ( http.status = 200 AND hlsText <> invalid ) then
+            'liveRegex = CreateObject( "roRegex", ",live", "ig" )
+            ' This line apparently causes Roku to not parse properly
+            ' Will probably cause streams to drop if the broadcaster decides to play an Ad
+            'testRegex = CreateObject( "roRegex", "#EXT-X-PROGRAM-DATE-TIME.*\n", "ig" )
+            dateRegex = CreateObject( "roRegex", "#EXT-X-DATERANGE.*\n", "ig" )
+            'hlsText = liveRegex.ReplaceAll( hlsText, ",live," )
+            hlsText = dateRegex.ReplaceAll( hlsText, "" )
+            getYoutube().dashManifestContents = hlsText
+            'print "New manifest text: " ; getYoutube().dashManifestContents
+        else
+            print "Failed to update Twitch HLS text!"
+            getYoutube().dashManifestContents = invalid
+        end if
+    else
+        print "No Twitch m3u8 URL"
+        getYoutube().dashManifestContents = invalid
+    end if
+End Sub
+
+Function MatchAllURLs(regex as Object, text As String) As Object
+   response = Left(text, Len(text))
+   values = {}
+   matches = regex.Match( response )
+   iLoop = 0
+   while ( matches.Count() > 2 )
+      values[ matches[ 1 ] ] = matches[2]
+      ' remove this instance, so we can get the next match
+      response = regex.Replace( response, "" )
+      matches = regex.Match( response )
+      ' if we've looped more than 50 times, then we're probably stuck, so exit
+      iLoop = iLoop + 1
+      if ( iLoop > 50 ) Then
+        exit while
+      end if
+   end while
+   return values
+End Function
+
 Sub newTwitchVideo( channel as String )
     result = QueryForJson( "https://api.twitch.tv/api/channels/" + channel + "/access_token?as3=t&allow_source=true" + GetAddendum() )
     'print "Sig: " ; result.json.sig
     'print "Token: " ; result.json.token
     'QueryForJson( "http://usher.twitch.tv/select/" + channel + ".json?nauthsig=" + result.json.sig +"&nauth=" + result.json.token )'+ "&allow_source=true" )
     getYoutube().dashManifestContents = invalid
+    getYoutube().twitchM3U8URL = invalid
     if ( result <> invalid AND result.status = 200 ) then
         meta                   = {}
         meta["Author"]                 = channel
@@ -177,8 +223,18 @@ Sub newTwitchVideo( channel as String )
         http = NewHttp( hlsUrl )
         hlsText = http.getToStringWithTimeout(10, headers)
         if ( http.status = 200 AND hlsText <> invalid ) then
-            ' The old Roku code doesn't handle the decimal value for the codec description, so replace with the hex version
-            hlsText = Substitute( hlsText, "77.31", "4d401f" )
+            ' Roku doesn't handle the sub-M3U8 file format, specifically the #EXT-X-DATERANGE tag
+            ' so, we gotta serve the sub M3U8 file ourselves, rather than relying on the Roku querying the server for it
+            ' we've gotta query it ourselves, and make sure the offending line is removed
+            regex720p30 = CreateObject( "roRegex", "VIDEO=" + Quote() + "([\w]+?)" + Quote() + "[^#]*?(http.*?\.m3u8)", "igs" )
+            urlResult = MatchAllURLs( regex720p30, hlsText )
+            PrintAny( 0, "A: ", urlResult )
+            for each key in urlResult
+                regexDoReplace = CreateObject ( "roRegex", urlResult[key], "ig" )
+                hlsText = regexDoReplace.ReplaceAll( hlsText, "http://localhost:6789/" + key )
+            next
+            getYoutube().twitchM3U8URL = urlResult
+            print hlsText
             getYoutube().dashManifestContents = hlsText
             meta["Streams"].Push({url: "http://localhost:6789", bitrate: 0, quality: false, contentid: -1})
             DisplayVideo(meta)
@@ -286,7 +342,7 @@ Function GetAddendum( num = 61 as Integer ) as Dynamic
     retVal.Push( base )
     base = base - 21
     retVal.Push( base )
-    base = base + 10 
+    base = base + 10
     retVal.Push( base )
     base = base - 5
     retVal.Push( base )

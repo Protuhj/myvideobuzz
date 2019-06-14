@@ -1,18 +1,11 @@
+Version 2.3 Build 014
+    - Fixes Vevo playback
+    - Fixes Twitch playback
+    - Notice: Do not expect further updates, as the channel will be effectively abandoned due to Roku blocking developer mode access.
 Version 2.3 Build 013
     - Fixes Vevo playback (thanks bombmars!)
     - Fixes live stream playback
-    - Notice: Do not expect further updates, as the channel will be effectively abandoned due to Roku blocking developer mode access.
 Version 2.3 Build 012
     - Fixes Vevo playback
 Version 2.3 Build 011
     - Fixes Vevo playback
-Version 2.3 Build 010
-    - Adds support for v.redd.it videos on the reddit component.
-Version 2.3 Build 009
-    - Fix Streamable playback.
-    - Changed Twitch component so stream descriptions are visible.
-Version 2.3 Build 008
-    - Fix Twitch.tv 400 error.
-Version 2.3 Build 007
-    - Adds support for Imgur gfys on the reddit component.
-    - Issue #159. Thanks to youvegottabecrazy!
