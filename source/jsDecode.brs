@@ -141,55 +141,28 @@ Function getMainfuncFromJS(jsBody as String) as Dynamic
     ' Return main signature decryption function from javascript as dict. """
     'print( "Scanning js for main function." )
     fpattern = CreateObject( "roRegex", "\bc\s*&&\s*d\.set\([^,]+\s*,\s*encodeURIComponent\(([a-zA-Z0-9$]+)\(", "" )
-    matches = fpattern.Match( jsBody )
-    funcname = invalid
-    funcBody = invalid
-    if ( matches.Count() > 1 ) then
-        funcname = matches[1]
-        print( "Found main function: " + funcname )
-        funcBody = extractFunctionFromJS( funcname, jsBody )
-    else
-        fpattern = CreateObject( "roRegex", "\w\.sig\|\|([$\w]+)\(\w+\.\w+\)", "" )
-        matches = fpattern.Match( jsBody )
+    patterns = []
+    ' Push new patterns to the front of the list
+    patterns.push({ pattern: CreateObject( "roRegex", "(?P<sig>[a-zA-Z0-9$]+)\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*" + Quote() + Quote() + "\s*\)", "" ), position: 1})
+    patterns.push({ pattern: CreateObject( "roRegex", "\bc\s*&&\s*d\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(", "" ), position: 1})
+    patterns.push({ pattern: CreateObject( "roRegex", "\bc\s*&&\s*d\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(", "" ), position: 1})
+    patterns.push({ pattern: CreateObject( "roRegex", "yt\.akamaized\.net/\)\s*\|\|\s*.*?\s*c\s*&&\s*d\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(", "" ), position: 1})
+    patterns.push({ pattern: CreateObject( "roRegex", "([\" + Quote() + "\'])signature\1\s*,\s*([a-zA-Z0-9$]+)\(", "" ), position: 2})
+    patterns.push({ pattern: CreateObject( "roRegex", "\w\.sig\|\|([$\w]+)\(\w+\.\w+\)", "" ), position: 2})
+    patterns.push({ pattern: CreateObject( "roRegex", "\bc\s*&&\s*d\.set\([^,]+\s*,\s*encodeURIComponent\(([a-zA-Z0-9$]+)\(", "" ), position: 1 })
+    count = 1
+    for each pat in patterns
+        matches = pat.pattern.Match( jsBody )
         if ( matches.Count() > 1 ) then
-            funcname = matches[2]
-            print( "Found main function: " + funcname )
+            funcname = matches[pat.position]
+            print "[" ; count ; "] Found main function: " ; funcname
             funcBody = extractFunctionFromJS( funcname, jsBody )
-        else
-            fpattern = CreateObject( "roRegex", "([\" + Quote() + "\'])signature\1\s*,\s*([a-zA-Z0-9$]+)\(", "" )
-            matches = fpattern.Match( jsBody )
-            if ( matches.Count() > 1 ) then
-                funcname = matches[2]
-                print( "Found main function: " + funcname )
-                funcBody = extractFunctionFromJS( funcname, jsBody )
-            else
-                fpattern = CreateObject( "roRegex", "yt\.akamaized\.net/\)\s*\|\|\s*.*?\s*c\s*&&\s*d\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(", "" )
-                matches = fpattern.Match( jsBody )
-                if ( matches.Count() > 1 ) then
-                    funcname = matches[1]
-                    print( "Found main function: " + funcname )
-                    funcBody = extractFunctionFromJS( funcname, jsBody )
-                else
-                    fpattern = CreateObject( "roRegex", "\bc\s*&&\s*d\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(", "" )
-                    matches = fpattern.Match( jsBody )
-                    if ( matches.Count() > 1 ) then
-                        funcname = matches[1]
-                        print( "Found main function: " + funcname )
-                        funcBody = extractFunctionFromJS( funcname, jsBody )
-                    else
-                        fpattern = CreateObject( "roRegex", "\bc\s*&&\s*d\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(", "" )
-                        matches = fpattern.Match( jsBody )
-                        if ( matches.Count() > 1 ) then
-                            funcname = matches[1]
-                            print( "Found main function: " + funcname )
-                            funcBody = extractFunctionFromJS( funcname, jsBody )
-                        end if
-                    end if
-                end if
-            end if
+            return funcBody
         end if
-    end if
-    return funcBody
+        count = count + 1
+    next
+    print "Failed to find main function!"
+    return invalid
 End Function
 
 Function getOtherFuncs(primary_func as Object, jsText as String) as Object
