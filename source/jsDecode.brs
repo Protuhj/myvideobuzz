@@ -37,6 +37,7 @@ Function get_js_sm(video_id as String, waitDialog = invalid as Dynamic) as Dynam
     '
     jsplayer = CreateObject( "roRegex", Quote() + "assets" + Quote() + "\s*:\s*\{.*?" + Quote() + "js" + Quote() + "\s*:\s*" + Quote() + "(.*?)" + Quote(), "" )
     sts_val = CreateObject( "roRegex", Quote() + "sts" + Quote() + "\s*:\s*(\d+)", "" )
+    sts_val_javascript = CreateObject( "roRegex", "sts\s*:\s*(\d+)", "" )
     slashRegex = CreateObject( "roRegex", "\\\/", "" )
     watch_url = "https://www.youtube.com/watch?v=" + video_id
     http = NewHttp( watch_url )
@@ -58,6 +59,8 @@ Function get_js_sm(video_id as String, waitDialog = invalid as Dynamic) as Dynam
             getYoutube().STSVal = stsMatch[1]
             stsValChanged = true
         end if
+    else
+        print "No STS match 1!"
     end if
     m = jsplayer.Match( watchinfo )
     if ( m.Count() > 1 ) then
@@ -93,10 +96,27 @@ Function get_js_sm(video_id as String, waitDialog = invalid as Dynamic) as Dynam
                     waitDialog.SetText( "Parsing javascript..." )
                 end if
             end if
+
+            stsMatch = sts_val_javascript.Match( javascript )
+            if ( stsMatch.Count() > 1 ) then
+                print "Found sts value 2: " + stsMatch[1]
+                if ( getYoutube().STSVal <> stsMatch[1] ) then
+                    ' Don't write to the registry too often.
+                    ' Store the STS Value for use next time, in case it changes.
+                    RegWrite("YT_STS_VAL", stsMatch[1])
+                    print "STS value mismatch old: " + getYoutube().STSVal + " new: " + stsMatch[1] + " - forcing retry"
+                    getYoutube().STSVal = stsMatch[1]
+                    stsValChanged = true
+                end if
+            else
+                print "No STS match 2 Uh OH!"
+            end if
             mainfunc = getMainfuncFromJS(javascript)
             if ( mainfunc <> invalid ) then
                 funcs = getOtherFuncs(mainfunc, javascript)
                 funcs["mainfunction"] = mainfunc
+                ' Debug all the Javascript functions
+                'printAA( funcs )
                 getYoutube().JSUrl = js_url
             else
                 print( "Couldn't find mainfunc!" )
@@ -157,6 +177,7 @@ Function getMainfuncFromJS(jsBody as String) as Dynamic
             funcname = matches[pat.position]
             print "[" ; count ; "] Found main function: " ; funcname
             funcBody = extractFunctionFromJS( funcname, jsBody )
+            ' print "Func body: " ; funcBody
             return funcBody
         end if
         count = count + 1

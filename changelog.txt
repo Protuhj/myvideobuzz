@@ -1,6 +1,8 @@
+Version 2.3 Build 016
+    - Fixes Vevo playback again
+    - Notice: Do not expect further updates, as the channel will be effectively abandoned due to Roku blocking developer mode access.
 Version 2.3 Build 015
     - Fixes Vevo playback
-    - Notice: Do not expect further updates, as the channel will be effectively abandoned due to Roku blocking developer mode access.
 Version 2.3 Build 014
     - Fixes Vevo playback
     - Fixes Twitch playback
@@ -9,5 +11,4 @@ Version 2.3 Build 013
     - Fixes live stream playback
 Version 2.3 Build 012
     - Fixes Vevo playback
-Version 2.3 Build 011
-    - Fixes Vevo playback
+

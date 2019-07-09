@@ -1669,7 +1669,7 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                         pair[equalsSplit [0]] = equalsSplit [1]
                     end if
                 end for
-                'printAA( pair )
+                ' printAA( pair )
                 if (pair.url <> "" and Left(LCase(pair.url), 4) = "http") then
                     signature = ""
                     if ( pair.s <> invalid AND pair.s <> "" ) then
@@ -1691,7 +1691,12 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                             end if
                             newSig = decodesig( pair.s )
                             if ( newSig <> invalid ) then
-                                signature = "&signature=" + newSig
+                                spField = "signature"
+                                if ( pair["sp"] <> invalid ) then
+                                    spField = pair.sp
+                                end if
+
+                                signature = "&" + spField + "=" + newSig
                                 if (pleaseWaitDlg <> invalid) then
                                     if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
                                         pleaseWaitDlg.UpdateText( "Done!" )
