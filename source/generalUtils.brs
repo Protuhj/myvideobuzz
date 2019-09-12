@@ -1,4 +1,3 @@
-
 '******************************************************
 'Registry Helper Functions
 '******************************************************
@@ -425,6 +424,69 @@ Function htmlDecode( encodedStr as String ) as String
     result = strReplace( result, "&quot;", Quote() )
     return result
 End Function
+Function LoadRegexes() as Object
+    this = {}
+    ' Hex regexes, which are relevant when getting a YouTube page
+    this.quoteRegexHex          = CreateObject("roRegex", "%22", "ig") ' "
+    this.ampersandRegexHex      = CreateObject("roRegex", "%26", "ig") ' &
+    this.commaRegexHex          = CreateObject("roRegex", "%2C", "ig") ' ,
+    this.forwardSlashRegexHex   = CreateObject("roRegex", "%2F", "ig") ' /
+    this.colonRegexHex          = CreateObject("roRegex", "%3A", "ig") ' :
+    this.semicolonRegexHex      = CreateObject("roRegex", "%3B", "ig") ' ;
+    this.equalsRegexHex         = CreateObject("roRegex", "%3D", "ig") ' =
+    this.queryRegexHex          = CreateObject("roRegex", "%3F", "ig") ' ?
+    this.leftBracketRegexHex    = CreateObject("roRegex", "%5B", "ig") ' [
+    this.backSlashRegexHex      = CreateObject("roRegex", "%5C", "ig") ' \
+    this.rightBracketRegexHex   = CreateObject("roRegex", "%5D", "ig") ' ]
+    this.leftBraceRegexHex      = CreateObject("roRegex", "%7B", "ig") ' {
+    this.rightBraceRegexHex     = CreateObject("roRegex", "%7D", "ig") ' }
+
+    ' Unicode regexes, which are relevant when getting a YouTube page
+    this.ampersandRegexUnicode  = CreateObject("roRegex", "\\u0026", "ig")
+    this.equalsRegexUnicode  = CreateObject("roRegex", "\\u003D", "ig")
+
+    ' Single characters
+    this.commaRegex             = CreateObject("roRegex", ",", "ig")
+    this.equalsRegex            = CreateObject("roRegex", "=", "ig")
+    this.ampersandRegex         = CreateObject("roRegex", "&", "ig")
+
+    ' Other
+    this.quotedValueRegex       = CreateObject("roRegex", Quote() + "([^" + Quote() + "]+)" + Quote(), "ig")
+
+    ' MPD-related
+    ' We take out quote characters, and this value is affected by it
+    this.codecRegex = CreateObject("roRegex", "codecs=\\(.+)\\", "ig")
+    return this
+End Function
+Function htmlDecodeFromYouTube( encodedStr as String ) as String
+    regexes = getRegexes()
+    result = regexes.quoteRegexHex.ReplaceAll( encodedStr, Quote() )
+    result = regexes.commaRegexHex.ReplaceAll( result, "," )
+    result = regexes.forwardSlashRegexHex.ReplaceAll( result, "/" )
+    result = regexes.backSlashRegexHex.ReplaceAll( result, "\\" )
+    result = regexes.semicolonRegexHex.ReplaceAll( result, ";" )
+    result = regexes.leftBracketRegexHex.ReplaceAll( result, "[" )
+    result = regexes.rightBracketRegexHex.ReplaceAll( result, "]" )
+    result = regexes.leftBraceRegexHex.ReplaceAll( result, "{" )
+    result = regexes.rightBraceRegexHex.ReplaceAll( result, "}" )
+    result = regexes.colonRegexHex.ReplaceAll( result, ":" )
+    result = regexes.equalsRegexHex.ReplaceAll( result, "=" )
+    result = regexes.ampersandRegexHex.ReplaceAll( result, "&" )
+    result = regexes.ampersandRegexUnicode.ReplaceAll( result, "&" )
+    result = regexes.queryRegexHex.ReplaceAll( result, "\?" )
+    return result
+End Function
+
+Function removeEncodedJSONCharactersFromYouTube( encodedStr as String ) as String
+    regexes = getRegexes()
+    result = regexes.quoteRegexHex.ReplaceAll( encodedStr, "" )
+    result = regexes.commaRegexHex.ReplaceAll( result, "" )
+    result = regexes.leftBracketRegexHex.ReplaceAll( result, "" )
+    result = regexes.rightBracketRegexHex.ReplaceAll( result, "" )
+    result = regexes.leftBraceRegexHex.ReplaceAll( result, "" )
+    result = regexes.rightBraceRegexHex.ReplaceAll( result, "" )
+    return result
+End Function
 
 '******************************************************
 ' Replace substrings in a string. Return new string
@@ -804,7 +866,7 @@ Function SimpleJSONAssociativeArray( jsonArray As Object ) As String
     if( Right( jsonString, 1 ) = "," ) then
         jsonString = Left( jsonString, Len( jsonString ) - 1 )
     end if
-   
+
     jsonString = jsonString + "}"
     Return jsonString
 End Function
@@ -838,7 +900,7 @@ Function SimpleJSONArray( jsonArray As Object ) As String
     If Right( jsonString, 1 ) = "," Then
         jsonString = Left( jsonString, Len( jsonString ) - 1 )
     End If
-   
+
     jsonString = jsonString + "]"
     Return jsonString
 End Function
@@ -852,10 +914,10 @@ Function IIf( Condition, Result1, Result2 )
 End Function
 
 Function firstValid( first as Dynamic, second as Dynamic, third = invalid as Dynamic ) as Dynamic
-    if ( first <> invalid ) then 
+    if ( first <> invalid ) then
         return first
     end if
-    if ( second <> invalid ) then 
+    if ( second <> invalid ) then
         return second
     end if
     return third

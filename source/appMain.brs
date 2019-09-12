@@ -11,6 +11,10 @@ Sub Init()
     if ( m.prefs = invalid ) then
         m.prefs = LoadPreferences()
     end if
+
+    if ( m.regexes = invalid ) then
+        m.regexes = LoadRegexes()
+    end if
 End Sub
 
 Function getYoutube() As Object
@@ -24,6 +28,10 @@ End Function
 
 Function getPrefs() as Object
     return m.prefs
+End Function
+
+Function getRegexes() as Object
+    return m.regexes
 End Function
 
 ' use Main function to be able to use the external control Roku provides later
@@ -156,7 +164,7 @@ Sub ShowHomeScreen(params = invalid as Dynamic)
     ' Code to test specific video IDs
     ' Each of these is age-restricted.
     'ids = []
-    'ids.push("5_yOGBzBTdc") ' Age restricted, fails? 16 May
+    'ids.push("bnAftkWqoE8") ' No cipher/signature
     'ids.push("PRZjnGUGXBI") ' VEVO turd
     'ids.push("1EROmqidZQc")
     'ids.push("kP8O-MOqmcw")
@@ -191,7 +199,7 @@ Sub ShowHomeScreen(params = invalid as Dynamic)
 
     ' Testing out a specific Twitch stream
     ' newTwitchVideo( "crendor" )
-    
+
     ' Show Twitch followed streams
     ' showUserFollowed( "protuhj" )
 

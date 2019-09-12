@@ -1,6 +1,7 @@
 Function InitYouTube() As Object
     ' constructor
     this = CreateObject("roAssociativeArray")
+    this.DEBUG = false
     this.userName = RegRead("YTUSERNAME1", invalid)
     this.channelId = RegRead("ytChannelId", invalid)
     this.funcmap = invalid
@@ -1341,8 +1342,8 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
 End Function
 
 Function dashManifest( videoID as String, formatData, duration )
+    youtube = getYoutube()
     waitDialog = invalid
-    codecRegex = CreateObject("roRegex", "codecs=" + Quote() + "(.+)" + Quote(), "ig")
     MPDString = "<?xml version=" + Quote() + "1.0" + Quote() + " encoding=" + Quote() + "UTF-8" + Quote() + "?>"
     MPDString = MPDString + "<MPD xmlns:xsi=" + Quote() + "http://www.w3.org/2001/XMLSchema-instance" + Quote() + " xmlns=" + Quote() + "urn:mpeg:DASH:schema:MPD:2011" + Quote() + " xmlns:yt=" + Quote() + "http://youtube.com/yt/2012/10/10" + Quote() + " xsi:schemaLocation=" + Quote() + "urn:mpeg:DASH:schema:MPD:2011 DASH-MPD.xsd" + Quote() + " minBufferTime=" + Quote() + "PT5.500S" + Quote() + " profiles=" + Quote() + "urn:mpeg:dash:profile:isoff-on-demand:2011" + Quote() + " type=" + Quote() + "static" + Quote() + " mediaPresentationDuration=" + Quote() + "PT"
     MPDString = MPDString + duration
@@ -1372,7 +1373,9 @@ Function dashManifest( videoID as String, formatData, duration )
                 encodedURL = audioData.url.DecodeUri().DecodeUri().GetEntityEncode() + "&amp;" + spField + "=" + signatureValObj.signature
             end if
         end if
-        ' print "Audio Encoded URL is: " + encodedURL
+        if ( youtube.DEBUG ) then
+            print "Audio Encoded URL is: " + encodedURL
+        end if
         MPDString = MPDString + "<AdaptationSet id=" + Quote() + "0" + Quote() + " mimeType=" + Quote() + "audio/mp4" + Quote() + " subsegmentAlignment=" + Quote() + "true" + Quote() + ">"
         MPDString = MPDString + "<Role schemeIdUri=" + Quote() + "urn:mpeg:DASH:role:2011" + Quote() + " value=" + Quote() + "main" + Quote() + "/>"
         MPDString = MPDString + "<Representation id=" + Quote() + "140" + Quote() + " codecs=" + Quote() + "mp4a.40.2" + Quote() + " audioSamplingRate=" + Quote() + "44100" + Quote() + " startWithSAP=" + Quote() + "1" + Quote() + " bandwidth=" + Quote() + toStr( Int( audioData.bitrate.ToInt() / 8 ) ).Trim() + Quote() + ">"
@@ -1417,11 +1420,16 @@ Function dashManifest( videoID as String, formatData, duration )
                         end if
                         'print "Video Encoded URL is: " + videoURL
                         formatTypeEscaped = format.type.Unescape().Unescape()
-                        codecStr = codecRegex.Match( formatTypeEscaped )[1]
+                        codecStr = getRegexes().codecRegex.Match( formatTypeEscaped )[1]
                         lenStr = toStr( Int( format.clen.ToInt() / 8 ) ).Trim()
-                        resolutionSplit = format.size.Split( "x" )
-                        widthStr = resolutionSplit[0]
-                        heightStr = resolutionSplit[1]
+                        if ( format["size"] <> invalid ) then
+                            resolutionSplit = format.size.Split( "x" )
+                            widthStr = resolutionSplit[0]
+                            heightStr = resolutionSplit[1]
+                        else
+                            widthStr = format.width
+                            heightStr = format.height
+                        end if
                         bandwidthStr = toStr( Int( format.bitrate.ToInt() / 8 ) ).Trim()
                         MPDString = MPDString + "<AdaptationSet id=" + Quote() + toStr( setID ) + Quote() + " mimeType=" + Quote() + formatTypeEscaped.split( ";" )[0] + Quote() + " subsegmentAlignment=" + Quote() + "true" + Quote() + ">"
                         MPDString = MPDString + "<Role schemeIdUri=" + Quote() + "urn:mpeg:DASH:role:2011" + Quote() + " value=" + Quote() + "main" + Quote() + "/>"
@@ -1436,6 +1444,10 @@ Function dashManifest( videoID as String, formatData, duration )
             end for
         end if
         MPDString = MPDString + "</Period></MPD>"
+        if ( youtube.DEBUG ) then
+            print MPDString
+        end if
+
         if ( setID = 1 AND getYoutube().audio_only = false ) then
             print "No video streams found?"
             retObj.didFail = true
@@ -1531,15 +1543,13 @@ Function decodeEncryptedS( videoID as String, first as Boolean, sVal as String, 
 End Function
 
 Function createDASHManifest( videoID, htmlString )
+    youtube = getYoutube()
     manifestObj = {}
     ' Default to true in case something in this function fails
     manifestObj.didFail = true
     durRegex = CreateObject("roRegex", "dur%253D([\d\.]+)", "ig")
-    commaRegex = CreateObject("roRegex", "%2C", "ig")
-    slashRegex = CreateObject("roRegex", "%2F", "ig")
-    equalsRegex = CreateObject("roRegex", "%3D", "ig")
-    ampersandRegex = CreateObject("roRegex", "%26", "ig")
-    urlEncodedRegex = CreateObject("roRegex", "adaptive_fmts=([^(" + Chr(34) + "|&|$)]*)", "ig")
+    regexes = getRegexes()
+    urlEncodedRegex = CreateObject("roRegex", "%22adaptiveFormats%22%3A%5B%7B(.*?)%7D%5D%2C", "ig")
     durMatch = durRegex.Match( htmlString )
     durationFromInfo = invalid
     if ( durMatch.Count() > 1 ) then
@@ -1558,19 +1568,103 @@ Function createDASHManifest( videoID, htmlString )
                 formatData = {}
                 if (not(strTrim(adaptiveFmtsStringMatch[1]) = "")) then
                     adaptiveFmtsString = adaptiveFmtsStringMatch[1]
-                    commaSplit = commaRegex.Split( adaptiveFmtsString )
+                    commaSplit = regexes.commaRegexHex.Split( adaptiveFmtsString )
+                    ' Result is now in JSON format, not a URL encoded format
+                    ' Parse it in a pretty gross way
+                    itag = invalid
+                    settings = invalid
+                    rangeStart = invalid
+                    whichRange = invalid
+                    if ( youtube.DEBUG ) then
+                        print "##############"
+                    end if
                     for each commaItem in commaSplit
-                        'print "##############"
-                        settings = {}
-                        ampersandSplit = ampersandRegex.split( commaItem )
-                        for each ampersandItem in ampersandSplit
-                            'print "ampersandItem: " + ampersandItem
-                            equalsSplit = equalsRegex.split( ampersandItem )
-                            'print equalsSplit[0] ; "=" ; equalsSplit[1]
-                            settings[equalsSplit[0]] = equalsSplit[1]
-                        end for
-                        formatData[ settings.itag ] = settings
+                        colonSplit = regexes.colonRegexHex.split( commaItem )
+                        if ( youtube.DEBUG ) then
+                            print "commaItem: " + commaItem
+                        end if
+                        key = regexes.quoteRegexHex.ReplaceAll(colonSplit[0], Quote())
+                        quotedValue = regexes.quotedValueRegex.Match( key )
+                        if ( quotedValue.Count() > 1 ) then
+                            key = quotedValue[1]
+                            fullRightSide = colonSplit[1]
+                            if (colonSplit.Count() > 2) then
+                                for i = 2 to colonSplit.Count() - 1  Step +1
+                                    fullRightSide = fullRightSide + ":" + colonSplit[i]
+                                end for
+                            end if
+                            value = htmlDecodeFromYouTube( removeEncodedJSONCharactersFromYouTube( fullRightSide ) )
+                            if ( key = "itag" and itag = invalid ) then
+                                itag = value
+                                settings = {}
+                            else if ( key = "itag" ) then
+                                formatData[ itag ] = settings
+                                if ( youtube.DEBUG ) then
+                                    print "Storing settings for itag value: " ; itag
+                                    print "##############"
+                                end if
+                                itag = value
+                                settings = {}
+                            end if
+                            ' Need to handle range information for the MPD Segment information
+                            if ( key = "initRange" ) then
+                                whichRange = "init"
+                                rangeStart = strReplace( value, "start:", "" )
+                            else if ( key = "indexRange" ) then
+                                rangeStart = strReplace( value, "start:", "" )
+                                whichRange = "index"
+                            else if ( key = "end" AND whichRange <> invalid ) then
+                                settings[ whichRange ] = rangeStart + "-" + value
+                                if ( youtube.DEBUG ) then
+                                    print "Setting range info: " ; whichRange ; "=" ; rangeStart + "-" + value
+                                end if
+                                whichRange = invalid
+                                rangeStart = invalid
+                            else if ( key = "contentLength" ) then
+                                settings[ "clen" ] = value
+                                if ( youtube.DEBUG ) then
+                                    print "Setting clen to: " ; value
+                                end if
+                            else if ( key = "mimeType" ) then
+                                settings[ "type" ] = value
+                                if ( youtube.DEBUG ) then
+                                    print "Setting type to: " ; value
+                                end if
+                            else if ( key = "cipher" ) then
+                                if ( youtube.DEBUG ) then
+                                    print "Cipher values: " ; key ; "=" ; value
+                                end if
+                                ampersandSplit = regexes.ampersandRegex.Split( value )
+                                for each ampersandItem in ampersandSplit
+                                    if ( youtube.DEBUG ) then
+                                        print("ampersandItem: " + ampersandItem)
+                                    end if
+                                    equalsSplit = regexes.equalsRegex.Split( ampersandItem )
+                                    if (equalsSplit.Count() = 2) then
+                                        'pair[equalsSplit [0]] = equalsSplit [1]
+                                        'if ( equalsSplit[0] = "s" OR equalsSplit[0] = "sp" ) then
+                                        settings[ equalsSplit[0] ] = equalsSplit[1]
+                                        'end if
+                                    end if
+                                end for
+                                settings[key] = value
+                            else
+                                if ( youtube.DEBUG ) then
+                                    print key ; "=" ; value
+                                end if
+                                settings[key] = value
+                            end if
+                        end if
                     end for
+                    if ( itag <> invalid AND settings <> invalid ) then
+                        formatData[ itag ] = settings
+                        if ( youtube.DEBUG ) then
+                            print "Finally storing settings for itag value: " ; itag
+                        end if
+                    end if
+                    if ( youtube.DEBUG ) then
+                        print "##############"
+                    end if
                     manifestObj = dashManifest( videoID, formatData, durationFromInfo )
                 else
                     print "Empty adaptiveFmtsString"
@@ -1626,16 +1720,18 @@ Function getYouTubeDASHMPD( htmlString as String, video as Object, isSSL as Bool
 End Function
 
 Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as Boolean, retryCount as Integer )
+    youtube = getYoutube()
     urlEncodedRegex = CreateObject("roRegex", "url_encoded_fmt_stream_map=([^(" + Chr(34) + "|&|$)]*)", "ig")
-    commaRegex = CreateObject("roRegex", "%2C", "ig")
-    ampersandRegex = CreateObject("roRegex", "%26", "ig")
-    equalsRegex = CreateObject("roRegex", "%3D", "ig")
+    regexes = GetRegexes()
+    commaRegex = regexes.commaRegexHex
+    ampersandRegex = regexes.ampersandRegexHex
+    equalsRegex = regexes.equalsRegexHex
 
     if ( video["Source"] = getConstants().sGOOGLE_DRIVE ) then
         urlEncodedRegex = CreateObject( "roRegex", Chr(34) + "url_encoded_fmt_stream_map" + Chr(34) + "[\:,]" + Chr(34) + "([^(" + Chr(34) + "|&|$)]*)" + Chr(34), "ig" )
-        commaRegex = CreateObject( "roRegex", ",", "g" )
-        ampersandRegex = CreateObject( "roRegex", "\\u0026", "ig" )
-        equalsRegex = CreateObject( "roRegex", "\\u003D", "ig" )
+        commaRegex = regexes.commaRegex
+        ampersandRegex = regexes.ampersandRegexUnicode
+        equalsRegex = regexes.equalsRegexUnicode
     end if
     htmlString = firstValid( htmlString, "" )
     urlEncodedFmtStreamMap = urlEncodedRegex.Match( htmlString )
@@ -1659,11 +1755,15 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
             end if
             streamData = invalid
             for each commaItem in commaSplit
-                'print("CommaItem: " + commaItem)
+                if ( youtube.DEBUG ) then
+                    print("CommaItem: " + commaItem)
+                end if
                 pair = {itag: "", url: "", sig: ""}
                 ampersandSplit = ampersandRegex.Split( commaItem )
                 for each ampersandItem in ampersandSplit
-                    'print("ampersandItem: " + ampersandItem)
+                    if ( youtube.DEBUG ) then
+                        print("ampersandItem: " + ampersandItem)
+                    end if
                     equalsSplit = equalsRegex.Split( ampersandItem )
                     if (equalsSplit.Count() = 2) then
                         pair[equalsSplit [0]] = equalsSplit [1]
@@ -1678,10 +1778,10 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                             functionMap = get_js_sm( video["ID"], pleaseWaitDlg )
                             getJSUrl = false
                         else
-                            functionMap = getYoutube().funcmap
+                            functionMap = youtube.funcmap
                         end if
                         if ( functionMap <> invalid AND functionMap["stsValChanged"] = invalid ) then
-                            getYoutube().funcmap = functionMap
+                            youtube.funcmap = functionMap
                             if (pleaseWaitDlg <> invalid) then
                                 if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
                                     pleaseWaitDlg.UpdateText( "Decoding signature..." )
@@ -1715,7 +1815,7 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                             end if
                         else if ( functionMap <> invalid AND functionMap["stsValChanged"] <> invalid ) then
                             functionMap["stsValChanged"] = invalid
-                            getYoutube().funcmap = functionMap
+                            youtube.funcmap = functionMap
                             didFail = true
                             print "STS value has changed"
                             stsValChanged = true
