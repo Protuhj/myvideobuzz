@@ -1562,7 +1562,8 @@ Function createDASHManifest( videoID, htmlString )
                         end if
                         key = regexes.quoteRegexHex.ReplaceAll(colonSplit[0], Quote())
                         quotedValue = regexes.quotedValueRegex.Match( key )
-                        if ( quotedValue.Count() > 1 ) then
+                        ' Some things get parsed weird since it's not parsing JSON, but rather doing string matching
+                        if ( quotedValue.Count() > 1 AND colonSplit.Count() > 1 ) then
                             key = quotedValue[1]
                             fullRightSide = colonSplit[1]
                             if (colonSplit.Count() > 2) then

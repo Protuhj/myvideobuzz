@@ -166,6 +166,7 @@ Sub ShowHomeScreen(params = invalid as Dynamic)
     ' Code to test specific video IDs
     ' Each of these is age-restricted.
     'ids = []
+    'ids.push("1bb7wKIHpgY") ' Crashes parser
     'ids.push("bnAftkWqoE8") ' No cipher/signature
     'ids.push("PRZjnGUGXBI") ' VEVO turd
     'ids.push("1EROmqidZQc")
