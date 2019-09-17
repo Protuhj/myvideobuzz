@@ -424,8 +424,52 @@ Function htmlDecode( encodedStr as String ) as String
     result = strReplace( result, "&quot;", Quote() )
     return result
 End Function
+
 Function LoadRegexes() as Object
     this = {}
+
+    ' Regex found on the internets here: http://stackoverflow.com/questions/3452546/javascript-regex-how-to-get-youtube-video-id-from-url (with modifications)
+    ' Pre-compile the YouTube video ID regex
+    this.ytIDRegex = CreateObject("roRegex", "(?:youtube(?:-nocookie)?.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu.be\/)([a-zA-Z0-9_-]{11})", "i")
+    this.ytIDRegexForDesc = CreateObject("roRegex", "(?:youtube(?:-nocookie)?.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu.be\/)([a-zA-Z0-9_-]{11})\W", "ig")
+    this.gfycatIDRegex = CreateObject( "roRegex", "(?:.*gfycat\.com\/)(\w*)\W*.*", "ig" )
+    this.regexNewline = CreateObject( "roRegex", "\n", "ig" )
+    this.regexTimestampHumanReadable = CreateObject( "roRegex", "\D+", "" )
+    this.regexTimestampHours = CreateObject( "roRegex", "(\d+)h+", "i" )
+    this.regexTimestampMinutes = CreateObject( "roRegex", "(\d+)m+", "i" )
+    this.regexTimestampSeconds = CreateObject( "roRegex", "(\d+)s+", "i" )
+
+    this.httpTargetRegex = CreateObject( "roRegex", "GET\s+\/(\w+)\s+HTTP", "ig" )
+
+    ' Javascript decoding regexes
+    this.jsplayer = CreateObject( "roRegex", Quote() + "assets" + Quote() + "\s*:\s*\{.*?" + Quote() + "js" + Quote() + "\s*:\s*" + Quote() + "(.*?)" + Quote(), "" )
+    this.sts_val = CreateObject( "roRegex", Quote() + "sts" + Quote() + "\s*:\s*(\d+)", "" )
+    this.sts_val_javascript = CreateObject( "roRegex", "sts\s*:\s*(\d+)", "" )
+    this.slashRegex = CreateObject( "roRegex", "\\\/", "" )
+    this.digitRegex = CreateObject( "roRegex", "(\d+)", "" )
+    
+    ''''' For locating the main function in Javascript
+    this.mainFuncPatterns = []
+    ' Push new patterns to the front of the list
+    this.mainFuncPatterns.push({ pattern: CreateObject( "roRegex", "(?P<sig>[a-zA-Z0-9$]+)\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*" + Quote() + Quote() + "\s*\)", "" ), position: 1})
+    this.mainFuncPatterns.push({ pattern: CreateObject( "roRegex", "\bc\s*&&\s*d\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(", "" ), position: 1})
+    this.mainFuncPatterns.push({ pattern: CreateObject( "roRegex", "\bc\s*&&\s*d\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(", "" ), position: 1})
+    this.mainFuncPatterns.push({ pattern: CreateObject( "roRegex", "yt\.akamaized\.net/\)\s*\|\|\s*.*?\s*c\s*&&\s*d\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(", "" ), position: 1})
+    this.mainFuncPatterns.push({ pattern: CreateObject( "roRegex", "([\" + Quote() + "\'])signature\1\s*,\s*([a-zA-Z0-9$]+)\(", "" ), position: 2})
+    this.mainFuncPatterns.push({ pattern: CreateObject( "roRegex", "\w\.sig\|\|([$\w]+)\(\w+\.\w+\)", "" ), position: 2})
+    this.mainFuncPatterns.push({ pattern: CreateObject( "roRegex", "\bc\s*&&\s*d\.set\([^,]+\s*,\s*encodeURIComponent\(([a-zA-Z0-9$]+)\(", "" ), position: 1 })
+    
+    ''''' Function call regexes
+    '# standard function call: X=F(A,B,C...)
+    this.funcCall = CreateObject( "roRegex", "(?:[$\w+])=([$\w]+)\(((?:\w+,?)+)\)$", "" )
+    '# dot notation function call: X=O.F(A,B,C..)
+    this.dotCall = CreateObject( "roRegex", "(?:[$\w+]=)?([$\w]+)\.([$\w]+)\(((?:\w+,?)+)\)$", "" )
+    '# dot notation function call: X=O["name"](A,B,C..)
+    this.arrayCall = CreateObject( "roRegex", "([$\w]+)\[(\" + Quote() + "[$\w]+\" + Quote() + ")\]\(((?:\w+,?)+)\)$", "" )
+    
+    ''''' For escaping regexes
+    this.dollarSignRegex = CreateObject( "roRegex", "\$", "" )
+
     ' Hex regexes, which are relevant when getting a YouTube page
     this.quoteRegexHex          = CreateObject("roRegex", "%22", "ig") ' "
     this.ampersandRegexHex      = CreateObject("roRegex", "%26", "ig") ' &
@@ -449,6 +493,7 @@ Function LoadRegexes() as Object
     this.commaRegex             = CreateObject("roRegex", ",", "ig")
     this.equalsRegex            = CreateObject("roRegex", "=", "ig")
     this.ampersandRegex         = CreateObject("roRegex", "&", "ig")
+    this.queryRegex             = CreateObject("roRegex", "\?", "ig")
 
     ' Other
     this.quotedValueRegex       = CreateObject("roRegex", Quote() + "([^" + Quote() + "]+)" + Quote(), "ig")

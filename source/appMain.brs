@@ -50,12 +50,14 @@ Sub processParamsForECNPush(params = invalid as Dynamic)
         if ( params.contentID <> invalid ) then
             youtube = getYoutube()
             print ("Received YouTube push for video: " + params.contentID)
+            youtube.UpdateWaitDialog( "Received YouTube push for video: " + params.contentID )
             ids = []
             ids.push( params.contentID.Trim() )
             res = youtube.ExecBatchQueryV3( ids )
             videos = youtube.newVideoListFromJSON( res.items )
             metadata = GetVideoMetaData( videos )
             result = video_get_qualities(metadata[0])
+            youtube.CloseWaitDialog()
             if (result = 0) then
                 DisplayVideo(metadata[0])
             else
@@ -179,7 +181,6 @@ Sub ShowHomeScreen(params = invalid as Dynamic)
     'ids.push("cL8sG3SQmiw") ' Hydraulic Press Channel - Intro audio sounds like garbage with track 139
     'ids.push("z0Z6gljz9_Y") ' Polyphia - Nightmare (vevo)
     'ids.push("mnzmUyHr1S8") ' Returns '0.000' for first duration regular expression hit
-    'ids.push("w7qJVlokJzY") ' FunhausTV (live)
 
     ' --- Play a specific video --- '
     'res = youtube.ExecBatchQueryV3( ids )
@@ -198,10 +199,13 @@ Sub ShowHomeScreen(params = invalid as Dynamic)
     'youtube.FetchVideoList("GetPlaylistItems", "Blah", false, {contentArg: "PL30BFB50685A0252B"})
 
     ' Testing out a specific Twitch stream
-    ' newTwitchVideo( "crendor" )
+    ' newTwitchVideo( "jessecox" )
 
     ' Show Twitch followed streams
-    ' showUserFollowed( "protuhj" )
+    'showUserFollowed( "protuhj" )
+
+    ' Show Twitch Top Games
+    ' ViewTwitch( youtube )
 
     ' Do main menu (required)
     uitkDoPosterMenu(menudata, screen, onselect)

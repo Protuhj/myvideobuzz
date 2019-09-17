@@ -39,22 +39,10 @@ Function GetConnectionFailedText() as String
 End Function
 
 '******************************************************
-'Show connection error dialog
-'
-'Parameter: retry t/f - offer retry option
-'Return 0 = retry, 1 = back
-'******************************************************
-Function ShowConnectionFailedRetry() as dynamic
-    Dbg("Connection Failed Retry")
-    title = "Can't connect to service"
-    text  = GetConnectionFailedText()
-    return ShowDialog2Buttons(title, text, "Try Again", "Back")
-End Function
-
-'******************************************************
 ' Show connection error dialog with only an OK button
 '******************************************************
 Sub ShowConnectionFailed( source = "" as String )
+    getYoutube().CloseWaitDialog()
     Dbg("Connection Failed: " + source)
     title = "Can't connect to service"
     text  = GetConnectionFailedText()
@@ -65,6 +53,7 @@ End Sub
 ' Show error dialog with OK button
 '******************************************************
 Sub ShowErrorDialog(text As dynamic, title = invalid as dynamic)
+    getYoutube().CloseWaitDialog()
     if (not(isstr(text))) then
         text = "Unspecified error"
     end if
@@ -79,6 +68,7 @@ End Sub
 ' Return: nothing
 '******************************************************
 Sub ShowDialog1Button(title As Dynamic, text As Dynamic, but1 As String, quickReturn = false As Boolean)
+    getYoutube().CloseWaitDialog()
     if (not(isstr(title))) then
         title = ""
     end if
@@ -119,6 +109,7 @@ End Sub
 'Return: 0=first button or screen closed, 1=second button
 '******************************************************
 Function ShowDialog2Buttons(title As dynamic, text As dynamic, but1 As String, but2 As String) As Integer
+    getYoutube().CloseWaitDialog()
     if (not(isstr(title))) then
         title = ""
     end if
@@ -162,6 +153,7 @@ End Function
 'Get input from the keyboard
 '******************************************************
 Function getKeyboardInput(title As String, search_text As String, default_text = "" as String, submit_text="Submit" As String, cancel_text="Cancel" As String)
+    getYoutube().CloseWaitDialog()
     screen = CreateObject( "roKeyboardScreen" )
     port = CreateObject( "roMessagePort" )
 
@@ -198,6 +190,7 @@ End Function
 'Dialog remains up until caller releases the returned object
 '******************************************************
 Function ShowDialogNoButton(title As dynamic, text As dynamic) As Object
+    getYoutube().CloseWaitDialog()
     if (not(isstr(title))) then
         title = ""
     end if

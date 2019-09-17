@@ -292,9 +292,9 @@ Function NewRedditVideo(jsonObject As Object, source = "YouTube" as String) As O
     video               = CreateObject("roAssociativeArray")
     ' The URL needs to be decoded prior to attempting to match
     decodedUrl = URLDecode( htmlDecode( jsonObject.data.url ) )
-    yt = getYoutube()
+    regexes = getRegexes()
     constants = getConstants()
-    ytMatches = yt.ytIDRegex.Match( decodedUrl )
+    ytMatches = regexes.ytIDRegex.Match( decodedUrl )
     url = jsonObject.data.url
     if ( jsonObject.data.media <> invalid AND jsonObject.data.media.oembed <> invalid ) then
         url = jsonObject.data.media.oembed.url
@@ -313,7 +313,7 @@ Function NewRedditVideo(jsonObject As Object, source = "YouTube" as String) As O
             if ( tParam <> invalid ) then
                 ' This code gets the timestamp from the normal url param (?t or &t)
                 if ( strtoi( tParam ) <> invalid ) then
-                    if ( yt.regexTimestampHumanReadable.Match( tParam ).Count() = 0 ) then
+                    if ( regexes.regexTimestampHumanReadable.Match( tParam ).Count() = 0 ) then
                         video["PlayStart"]  = strtoi( tParam )
                     else
                         video["PlayStart"]  = get_human_readable_as_length( tParam )
@@ -366,7 +366,7 @@ Function NewRedditVideo(jsonObject As Object, source = "YouTube" as String) As O
     end if
     desc = firstValid( desc, "" )
     video["Description"]   = htmlDecode( desc )
-    video["Linked"]        = MatchAll( yt.ytIDRegexForDesc, video["Description"] )
+    video["Linked"]        = MatchAll( regexes.ytIDRegexForDesc, video["Description"] )
     video["Score"]         = jsonObject.data.score
     thumb = ""
     if (jsonObject.data.media <> invalid AND jsonObject.data.media.oembed <> invalid) then
@@ -389,8 +389,7 @@ Function NewRedditGfycatVideo(jsonObject As Object) As Object
     video               = CreateObject("roAssociativeArray")
     ' The URL needs to be decoded prior to attempting to match
     decodedUrl = URLDecode( htmlDecode( jsonObject.data.url ) )
-    yt = getYoutube()
-    gfycatMatches = yt.gfycatIDRegex.Match( decodedUrl )
+    gfycatMatches = getRegexes().gfycatIDRegex.Match( decodedUrl )
     id = invalid
     if ( gfycatMatches.Count() > 1 ) then
         ' Default the PlayStart, since it is read later on

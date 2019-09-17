@@ -20,7 +20,7 @@
 ' These allow side effects without explicitly coding them here.
 ' ******************************************************
 
-Function NewHttp(url As String, port=invalid As Dynamic, method="GET" As String) as Object
+Function NewHttp(url As String, rawQueryString=invalid as Dynamic, port=invalid As Dynamic, method="GET" As String) as Object
     this                           = CreateObject("roAssociativeArray")
     this.port                      = port
     this.method                    = method
@@ -39,6 +39,7 @@ Function NewHttp(url As String, port=invalid As Dynamic, method="GET" As String)
     this.GetURL                    = http_get_url
     this.GetParams                 = http_get_params
     this.ParamGroup                = http_get_param_group
+    this.AddRawQuery               = http_add_raw_query
 
     'transfers
     this.GetToStringWithRetry      = http_get_to_string_with_retry
@@ -57,7 +58,9 @@ Function NewHttp(url As String, port=invalid As Dynamic, method="GET" As String)
     this.Prep                      = http_prep
     this.Wait                      = http_wait_with_timeout
     this.Dump                      = http_dump
-
+    if (rawQueryString <> invalid) then
+        this.raw_query = rawQueryString
+    end if
     this.Parse(url)
 
     return this
@@ -96,6 +99,10 @@ Function http_prep(method="" As String)
     urlobj.SetRequest(m.method)
     HttpActive().replace(m,urlobj)
     m.timer.mark()
+End Function
+
+Function http_add_raw_query(query As String) as Void
+    m.raw_query = query
 End Function
 
 ' ******************************************************
@@ -177,11 +184,15 @@ End Function
 
 Function http_get_url() As String
     url = m.base
-    params = m.GetParams("urlParams")
-    if (not(params.empty())) then
-        url = url + "?"
+    if (m.raw_query <> invalid) then
+        url = url + m.raw_query
+    else
+        params = m.GetParams("urlParams")
+        if (not(params.empty())) then
+            url = url + "?"
+        end if
+        url = url + params.encode()
     end if
-    url = url + params.encode()
     if (m.anchor <> "") then
         url = url + "#" + m.anchor
     end if

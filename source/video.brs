@@ -161,19 +161,6 @@ Function InitYouTube() As Object
     ' For Twitch Streaming Annoyance-fixing
     this.twitchM3U8URL = invalid
 
-    ' Regex found on the internets here: http://stackoverflow.com/questions/3452546/javascript-regex-how-to-get-youtube-video-id-from-url (with modifications)
-    ' Pre-compile the YouTube video ID regex
-    this.ytIDRegex = CreateObject("roRegex", "(?:youtube(?:-nocookie)?.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu.be\/)([a-zA-Z0-9_-]{11})", "i")
-    this.ytIDRegexForDesc = CreateObject("roRegex", "(?:youtube(?:-nocookie)?.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu.be\/)([a-zA-Z0-9_-]{11})\W", "ig")
-    this.gfycatIDRegex = CreateObject( "roRegex", "(?:.*gfycat\.com\/)(\w*)\W*.*", "ig" )
-    this.regexNewline = CreateObject( "roRegex", "\n", "ig" )
-    this.regexTimestampHumanReadable = CreateObject( "roRegex", "\D+", "" )
-    this.regexTimestampHours = CreateObject( "roRegex", "(\d+)h+", "i" )
-    this.regexTimestampMinutes = CreateObject( "roRegex", "(\d+)m+", "i" )
-    this.regexTimestampSeconds = CreateObject( "roRegex", "(\d+)s+", "i" )
-
-    this.httpTargetRegex = CreateObject( "roRegex", "GET\s+\/(\w+)\s+HTTP", "ig" )
-
     patterns = {}
     ' patterns.split_or_join = CreateObject( "roRegex", "(\w+)=\1\.(?:split|join)\(" + Quote() + "" + Quote() + ")$", "" )
     patterns.func_call = CreateObject( "roRegex", "(\w+)=([$\w]+)\(((?:\w+,?)+)\)$", "")
@@ -199,6 +186,10 @@ Function InitYouTube() As Object
     this.audio_only = false
     this.WhatsNewLastQueried% = 0
     this.WhatsNewVideos = invalid
+    ' Dialog used to show the app is working
+    this.UpdateWaitDialog = updateWaitDialogText_impl
+    this.CloseWaitDialog = closeWaitDialog_impl
+    this.waitDialog = invalid
     return this
 End Function
 
@@ -779,7 +770,9 @@ End Sub
 ' @param theVideo the video metadata object that should be played.
 '********************************************************************
 Sub onplay_callback(theVideo as Object)
+    getYoutube().UpdateWaitDialog( "Playing Video..." )
     result = video_get_qualities(theVideo)
+    getYoutube().CloseWaitDialog()
     if (result = 0) then
         DisplayVideo(theVideo)
     end if
@@ -833,7 +826,7 @@ Function newVideoFromJSON_impl(jsonVideoItem as Object) As Dynamic
     video["Author"]         = jsonVideoItem.snippet.channelTitle
     video["UserID"]         = jsonVideoItem.snippet.channelId
     video["Title"]          = jsonVideoItem.snippet.title
-    video["Linked"]         = MatchAll( m.ytIDRegexForDesc, jsonVideoItem.snippet.description )
+    video["Linked"]         = MatchAll( getRegexes().ytIDRegexForDesc, jsonVideoItem.snippet.description )
     video["Description"]    = jsonVideoItem.snippet.description
     video["Length"]         = get_human_readable_as_length( jsonVideoItem.contentDetails.duration )
     video["UploadDate"]     = GetUploadDate_impl( jsonVideoItem.snippet.publishedAt )
@@ -967,18 +960,18 @@ End Function
 '*******************************************
 Function get_human_readable_as_length(length As Dynamic) As Integer
     len% = 0
-    yt = getYoutube()
-    hourMatches = yt.regexTimestampHours.Match( length )
+    regexes = getRegexes()
+    hourMatches = regexes.regexTimestampHours.Match( length )
     if ( hourMatches.Count() = 2 ) then
         len% = len% + (3600 * strtoi( hourMatches[1] ))
     end if
 
-    minuteMatches = yt.regexTimestampMinutes.Match( length )
+    minuteMatches = regexes.regexTimestampMinutes.Match( length )
     if ( minuteMatches.Count() = 2 ) then
         len% = len% + (60 * strtoi( minuteMatches[1] ))
     end if
 
-    secMatches = yt.regexTimestampSeconds.Match( length )
+    secMatches = regexes.regexTimestampSeconds.Match( length )
     if ( secMatches.Count() = 2 ) then
         len% = len% + strtoi( secMatches[1] )
     end if
@@ -1021,7 +1014,9 @@ Function VideoDetails_impl(theVideo As Object, breadcrumb As String, videos=inva
             else if ( msg.isButtonPressed() ) then
                 'print "Button pressed: "; msg.GetIndex(); " " msg.GetData()
                 if ( msg.GetIndex() = 0 ) then ' Play/Resume
+                    getYoutube().UpdateWaitDialog( "Playing Video..." )
                     result = video_get_qualities( activeVideo )
+                    getYoutube().CloseWaitDialog()
                     if ( result = 0 ) then
                         DisplayVideo( activeVideo )
                         BuildButtons( activeVideo, screen )
@@ -1031,7 +1026,9 @@ Function VideoDetails_impl(theVideo As Object, breadcrumb As String, videos=inva
                         selectedVideo = videos[i]
                         isPlaylist = firstValid( selectedVideo["isPlaylist"], false )
                         if ( isPlaylist = false AND selectedVideo["action"] = invalid )
+                            getYoutube().UpdateWaitDialog( "Playing Video..." )
                             result = video_get_qualities( selectedVideo )
+                            getYoutube().CloseWaitDialog()
                             if ( result = 0 ) then
                                 activeVideo = videos[i]
                                 ret = DisplayVideo( activeVideo )
@@ -1052,7 +1049,9 @@ Function VideoDetails_impl(theVideo As Object, breadcrumb As String, videos=inva
                     m.BrowseUserPlaylists( activeVideo["Author"], activeVideo["UserID"] )
                 else if ( msg.GetIndex() = 5 ) then ' Play from beginning
                     activeVideo["PlayStart"] = 0
+                    getYoutube().UpdateWaitDialog( "Playing Video..." )
                     result = video_get_qualities( activeVideo )
+                    getYoutube().CloseWaitDialog()
                     if (result = 0) then
                         DisplayVideo( activeVideo )
                         BuildButtons( activeVideo, screen )
@@ -1257,7 +1256,7 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
     prefs = getPrefs()
     DASH_MAX_RETRIES = 1
     if (video["FailedDash"] <> invalid) then
-        print "Failed dash was not invalid, playing mp4"
+        print "FailedDash was not invalid, playing mp4"
         doDASH = false
     else if (doDASH = true AND prefs.getPrefValue( getConstants().pVIDEO_QUALITY ) = getConstants().FORCE_LOWEST) then
         print "Not getting DASH due to preference being set to lowest quality."
@@ -1303,7 +1302,7 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
     end if
     constants = getConstants()
     port = CreateObject("roMessagePort")
-
+    getYoutube().UpdateWaitDialog( "Downloading info webpage..." )
     http = NewHttp( url )
     headers = { }
     headers["User-Agent"] = constants.USER_AGENT
@@ -1312,6 +1311,7 @@ Function getYouTubeMP4Url(video as Object, doDASH = true as Boolean, retryCount 
 
     if ( http.status <> -1 AND http.status <> 403 ) then
         if (doDASH = true) then
+            getYoutube().UpdateWaitDialog( "Attempting to load DASH format..." )
             retVal = getYouTubeDASHMPD( htmlString, video, isSSL )
 
             ' If the get DASH MPD URL fails, then fall back to the old way.
@@ -1343,7 +1343,6 @@ End Function
 
 Function dashManifest( videoID as String, formatData, duration )
     youtube = getYoutube()
-    waitDialog = invalid
     MPDString = "<?xml version=" + Quote() + "1.0" + Quote() + " encoding=" + Quote() + "UTF-8" + Quote() + "?>"
     MPDString = MPDString + "<MPD xmlns:xsi=" + Quote() + "http://www.w3.org/2001/XMLSchema-instance" + Quote() + " xmlns=" + Quote() + "urn:mpeg:DASH:schema:MPD:2011" + Quote() + " xmlns:yt=" + Quote() + "http://youtube.com/yt/2012/10/10" + Quote() + " xsi:schemaLocation=" + Quote() + "urn:mpeg:DASH:schema:MPD:2011 DASH-MPD.xsd" + Quote() + " minBufferTime=" + Quote() + "PT5.500S" + Quote() + " profiles=" + Quote() + "urn:mpeg:dash:profile:isoff-on-demand:2011" + Quote() + " type=" + Quote() + "static" + Quote() + " mediaPresentationDuration=" + Quote() + "PT"
     MPDString = MPDString + duration
@@ -1359,11 +1358,12 @@ Function dashManifest( videoID as String, formatData, duration )
         if (audioData.s = invalid) then
             encodedURL = audioData.url.DecodeUri().DecodeUri().GetEntityEncode()
         else
-            waitDialog = ShowPleaseWait( "Creating DASH Manifest", "Decoding signature..." )
-            signatureValObj = decodeEncryptedS( videoID, firstSDecrypt, URLDecode( URLDecode( audioData.s ) ), waitDialog )
+            youtube.UpdateWaitDialog( "Decoding signature...", "Creating DASH Manifest" )
+            signatureValObj = decodeEncryptedS( videoID, firstSDecrypt, URLDecode( URLDecode( audioData.s ) ) )
             firstSDecrypt = false
             if ( signatureValObj.didFail = true ) then
-                waitDialog.Close()
+                youtube.waitDialog.Close()
+                youtube.waitDialog = invalid
                 return signatureValObj
             else
                 spField = "signature"
@@ -1388,27 +1388,20 @@ Function dashManifest( videoID as String, formatData, duration )
         if ( getYoutube().audio_only = false ) then
             for each formatKey in formatData
                 format = formatData[ formatKey ]
-                if ( format.type.InStr( "audio" ) = -1 ) then
+                if ( format["type"] <> invalid AND format.type.InStr( "audio" ) = -1 AND validateDASHVideoFields( format ) ) then
                     if ( format.itag.ToInt() < 210 ) then
                         ' Check for encoded signature
-                        if (format.s = invalid) then
+                        if (format["s"] = invalid) then
                             videoURL = format.url.DecodeUri().DecodeUri().GetEntityEncode()
                         else
-                            if ( waitDialog <> invalid ) then
-                                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
-                                    waitDialog.UpdateText( "Decoding next video URL" )
-                                else
-                                    ' Don't update the Dialog, since Roku 1 doesn't support UpdateText
-                                end if
-                            else
-                                waitDialog = ShowPleaseWait( "Creating DASH Manifest", "Decoding signature..." )
-                            end if
+                            youtube.UpdateWaitDialog( "Decoding next video URL" )
                             'print "s: " ; format.s
                             'print "s: " ;  URLDecode( URLDecode( format.s ) )
-                            signatureValObj = decodeEncryptedS( videoID, firstSDecrypt, URLDecode( URLDecode( format.s ) ), waitDialog )
+                            signatureValObj = decodeEncryptedS( videoID, firstSDecrypt, URLDecode( URLDecode( format.s ) ) )
                             firstSDecrypt = false
                             if ( signatureValObj.didFail = true ) then
-                                waitDialog.Close()
+                                youtube.waitDialog.Close()
+                                youtube.waitDialog = invalid
                                 return signatureValObj
                             else
                                 spField = "signature"
@@ -1460,13 +1453,27 @@ Function dashManifest( videoID as String, formatData, duration )
         retObj.didFail = true
         retObj.mpdString = invalid
     end if
-    if ( waitDialog <> invalid ) then
-        waitDialog.Close()
+    if ( youtube.waitDialog <> invalid ) then
+        youtube.waitDialog.Close()
+        youtube.waitDialog = invalid
     end if
     return retObj
 End Function
 
-Function decodeEncryptedS( videoID as String, first as Boolean, sVal as String, pleaseWaitDlg )
+Function validateDASHVideoFields( formatData as Object ) as Boolean
+    retVal = false
+    if ( formatData["itag"] <> invalid AND formatData["clen"] <> invalid AND formatData["bitrate"] <> invalid AND formatData["fps"] <> invalid AND formatData["index"] <> invalid AND formatData["init"] <> invalid ) then
+        retVal = true
+    else
+        if ( getYoutube().DEBUG ) then
+            PrintAny(0, "Invalid DASH Video Format Data:", formatData)
+        end if
+    end if
+    return retVal
+End Function
+
+Function decodeEncryptedS( videoID as String, first as Boolean, sVal as String )
+    youtube = getYoutube()
     getJSUrl = first
     retObj = {}
     retObj.didFail = false
@@ -1476,45 +1483,24 @@ Function decodeEncryptedS( videoID as String, first as Boolean, sVal as String, 
         ' Use this to just quit early since DASH doesn't work with the encoded URLs for some reason
         'return getYouTubeMP4Url( video, false, 0 )
         if ( getJSUrl = true ) then
-            if (pleaseWaitDlg <> invalid) then
-                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
-                    pleaseWaitDlg.UpdateText( "Downloading webpage..." )
-                else
-                    ' Add another line in this case
-                    pleaseWaitDlg.SetText( "Downloading webpage..." )
-                end if
-            end if
-            functionMap = get_js_sm( videoID, pleaseWaitDlg )
+            youtube.UpdateWaitDialog( "Downloading webpage..." )
+            functionMap = get_js_sm( videoID )
             getJSUrl = false
         else
             functionMap = getYoutube().funcmap
         end if
         if ( functionMap <> invalid AND functionMap["stsValChanged"] = invalid ) then
             getYoutube().funcmap = functionMap
-            if (pleaseWaitDlg <> invalid) then
-                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
-                    pleaseWaitDlg.UpdateText( "Decoding signature..." )
-                end if
-            end if
+            youtube.UpdateWaitDialog( "Decoding signature..." )
             newSig = decodesig( sVal )
             if ( newSig <> invalid ) then
                 'signature = "/signature/" + newSig
                 retObj.signature = newSig
-                if (pleaseWaitDlg <> invalid) then
-                    if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
-                        pleaseWaitDlg.UpdateText( "Done!" )
-                    end if ' No else, the dialog will be closing
-                end if
+                youtube.UpdateWaitDialog( "Done!" )
             else
                 retObj.didFail = true
                 print "Failed to decode signature!"
-                if (pleaseWaitDlg <> invalid) then
-                    if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
-                        pleaseWaitDlg.UpdateText( "Failed to decode signature!" )
-                    else
-                        pleaseWaitDlg.SetText( "Failed to decode signature!" )
-                    end if
-                end if
+                youtube.UpdateWaitDialog( "Failed to decode signature!" )
             end if
         else if ( functionMap <> invalid AND functionMap["stsValChanged"] <> invalid ) then
             functionMap["stsValChanged"] = invalid
@@ -1522,21 +1508,11 @@ Function decodeEncryptedS( videoID as String, first as Boolean, sVal as String, 
             retObj.didFail = true
             print "STS value has changed :: decodeEncryptedS"
             retObj.stsValChanged = true
-            if (pleaseWaitDlg <> invalid) then
-                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
-                    pleaseWaitDlg.UpdateText( "STS value has changed, going to retry." )
-                end if ' Don't update
-            end if
+            youtube.UpdateWaitDialog( "STS value has changed, going to retry." )
         else ' functionMap = invalid
             retObj.didFail = true
             print "Failed to parse javascript!"
-            if (pleaseWaitDlg <> invalid) then
-                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
-                    pleaseWaitDlg.UpdateText( "Failed to parse javascript!" )
-                else
-                    pleaseWaitDlg.SetText( "Failed to parse javascript!" )
-                end if
-            end if
+            youtube.UpdateWaitDialog( "Failed to parse javascript!" )
         end if
     end if
     return retObj
@@ -1565,6 +1541,7 @@ Function createDASHManifest( videoID, htmlString )
         if ( durationFromInfo <> invalid ) then
             adaptiveFmtsStringMatch = urlEncodedRegex.Match( htmlString )
             if ( adaptiveFmtsStringMatch.Count() > 1 ) then
+                getYoutube().UpdateWaitDialog( "Found DASH info, parsing..." )
                 formatData = {}
                 if (not(strTrim(adaptiveFmtsStringMatch[1]) = "")) then
                     adaptiveFmtsString = adaptiveFmtsStringMatch[1]
@@ -1774,21 +1751,15 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                     signature = ""
                     if ( pair.s <> invalid AND pair.s <> "" ) then
                         if ( getJSUrl = true ) then
-                            pleaseWaitDlg = ShowPleaseWait( "Decoding signature", "Downloading webpage..." )
-                            functionMap = get_js_sm( video["ID"], pleaseWaitDlg )
+                            youtube.UpdateWaitDialog( "Downloading webpage...", "Decoding signature" )
+                            functionMap = get_js_sm( video["ID"] )
                             getJSUrl = false
                         else
                             functionMap = youtube.funcmap
                         end if
                         if ( functionMap <> invalid AND functionMap["stsValChanged"] = invalid ) then
                             youtube.funcmap = functionMap
-                            if (pleaseWaitDlg <> invalid) then
-                                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
-                                    pleaseWaitDlg.UpdateText( "Decoding signature..." )
-                                else
-                                    pleaseWaitDlg.SetText( "Decoding signature..." )
-                                end if
-                            end if
+                            youtube.UpdateWaitDialog( "Decoding signature..." )
                             newSig = decodesig( pair.s )
                             if ( newSig <> invalid ) then
                                 spField = "signature"
@@ -1797,21 +1768,11 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                                 end if
 
                                 signature = "&" + spField + "=" + newSig
-                                if (pleaseWaitDlg <> invalid) then
-                                    if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
-                                        pleaseWaitDlg.UpdateText( "Done!" )
-                                    end if
-                                end if
+                                youtube.UpdateWaitDialog( "Done!" )
                             else
                                 didFail = true
                                 print "Failed to decode signature!"
-                                if (pleaseWaitDlg <> invalid) then
-                                    if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
-                                        pleaseWaitDlg.UpdateText( "Failed to decode signature!" )
-                                    else
-                                        pleaseWaitDlg.SetText( "Failed to decode signature!" )
-                                    end if
-                                end if
+                                youtube.UpdateWaitDialog( "Failed to decode signature!" )
                             end if
                         else if ( functionMap <> invalid AND functionMap["stsValChanged"] <> invalid ) then
                             functionMap["stsValChanged"] = invalid
@@ -1819,21 +1780,11 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                             didFail = true
                             print "STS value has changed"
                             stsValChanged = true
-                            if (pleaseWaitDlg <> invalid) then
-                                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
-                                    pleaseWaitDlg.UpdateText( "STS value has changed, going to retry." )
-                                end if
-                            end if
+                            youtube.UpdateWaitDialog( "STS value has changed, going to retry." )
                         else ' functionMap = invalid
                             didFail = true
                             print "Failed to parse javascript!"
-                            if (pleaseWaitDlg <> invalid) then
-                                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
-                                    pleaseWaitDlg.UpdateText( "Failed to parse javascript!" )
-                                else
-                                    pleaseWaitDlg.SetText( "Failed to parse javascript!" )
-                                end if
-                            end if
+                            youtube.UpdateWaitDialog( "Failed to parse javascript!" )
                         end if
                     else
                         if (pair.sig <> "") then
@@ -2406,7 +2357,7 @@ Sub AddHistory_impl(video as Object)
         vid["FullDescription"] = ""
     end for
 
-    historyString = m.regexNewline.ReplaceAll( SimpleJSONArray(m.history), "")
+    historyString = getRegexes().regexNewline.ReplaceAll( SimpleJSONArray(m.history), "")
     m.historyLen = Len(historyString)
     ' print("**** History string len: " + tostr(m.historyLen) + "****")
     RegWrite("videos", historyString, "history")
@@ -2418,10 +2369,20 @@ Sub AddHistory_impl(video as Object)
     end for
 End Sub
 
-Function QueryForJson( url as String ) As Object
-    http = NewHttp( url )
+Function QueryForJson( url as String, addlHeaders = invalid as Dynamic) As Object
+    rawQueryString = invalid
+    querySplit = getRegexes().queryRegex.split(url)
+    if ( querySplit.Count() > 1 ) then
+        rawQueryString = "?" + querySplit[1]
+    end if
+    http = NewHttp( url, rawQueryString )
     headers = { }
     headers["User-Agent"] = getConstants().USER_AGENT
+    if ( addlHeaders <> invalid ) then
+        for each key in addlHeaders
+            headers[key] = addlHeaders[key]
+        end for
+    end if
     http.method = "GET"
     rsp = http.getToStringWithTimeout( 10, headers )
 
@@ -2435,3 +2396,23 @@ Function QueryForJson( url as String ) As Object
     returnObj.status = http.status
     return returnObj
 End Function
+
+Sub updateWaitDialogText_impl( text as String, title = "Please Wait" as String )
+    if (m.waitDialog <> invalid) then
+        if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
+            m.waitDialog.UpdateText( text )
+        else
+            ' Roku 1 doesn't support updating dialog text
+            ' m.waitDialog.SetText( "Downloading javascript file..." )
+        end if
+    else
+        m.waitDialog = ShowPleaseWait( title, text )
+    end if
+End Sub
+
+Sub closeWaitDialog_impl()
+    if (m.waitDialog <> invalid) then
+        m.waitDialog.Close()
+        m.waitDialog = invalid
+    end if
+End Sub

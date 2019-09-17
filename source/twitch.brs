@@ -13,19 +13,21 @@
 ' @param url an optional URL with the multireddit to query, or the full link to parse. This is used when hitting the 'More Results' or 'Back' buttons on the video list page.
 '     multireddits look like this: videos+funny+humor for /r/videos, /r/funny, and /r/humor
 '******************************************************************************
-Sub ViewTwitch(youtube as Object, urlToQuery = "https://api.twitch.tv/kraken/games/top?hls=true&limit=20" as String )
-    'https://api.twitch.tv/kraken/games/top?hls=true
+Sub ViewTwitch(youtube as Object, urlToQuery = "https://api.twitch.tv/helix/games/top" as String )
     title = "Twitch Games"
     screen = uitkPreShowPosterMenu( "arced-portrait", title )
     screen.showMessage( "Loading Twitch games..." )
-    rsp = QueryForJson( urlToQuery + GetAddendum())
+    rsp = QueryForJson( urlToQuery, GetAddendum() )
 
     if ( rsp.status = 200 ) then
         gameList = newTwitchGameList( rsp.json )
-
         ' Now add the 'More results' button
-        if ( rsp.json._links <> invalid AND rsp.json._links.next <> invalid ) then
-            gameList.Push({shortDescriptionLine1: "More Results", action: "next", pageURL: rsp.json._links.next, HDPosterUrl:"pkg:/images/twitch_more.jpg", SDPosterUrl:"pkg:/images/twitch_more.jpg"})
+        if ( rsp.json.pagination <> invalid AND rsp.json.pagination.cursor <> invalid ) then
+            newURL = NewHttp( urlToQuery )
+            ' Remove the old value first, otherwise it doesn't get replaced
+            newURL.RemoveParam( "after", "urlParams" )
+            newURL.AddParam( "after", rsp.json.pagination.cursor, "urlParams" )
+            gameList.Push({shortDescriptionLine1: "More Results", action: "next", pageURL: newURL.GetURL(), HDPosterUrl:"pkg:/images/twitch_more.jpg", SDPosterUrl:"pkg:/images/twitch_more.jpg"})
         end if
         twitchUserName = getPrefs().getPrefValue( getConstants().pTWITCH_USER_NAME )
         if ( Len( twitchUserName.Trim() ) > 0 ) then
@@ -39,7 +41,7 @@ Sub ViewTwitch(youtube as Object, urlToQuery = "https://api.twitch.tv/kraken/gam
             else if ( menu[set_idx]["special"] = "followed" ) then
                 showUserFollowed( menu[set_idx]["username"] )
             else
-                ViewTwitchStreams( menu[set_idx]["TitleSeason"] )
+                ViewTwitchStreams( menu[set_idx]["TitleSeason"], invalid, menu[set_idx]["ID"] )
             end if
             return set_idx
         end function]
@@ -54,68 +56,79 @@ End Sub
 ' @param userName The user name of the user to get followed channels for
 '******************************************************************************
 Sub showUserFollowed( userName as String )
-    urlToQuery = "https://api.twitch.tv/kraken/users/" + userName.Trim() + "/follows/channels?limit=50&sortby=last_broadcast"
-    rsp = QueryForJson( urlToQuery + GetAddendum())
-    if ( rsp.status = 200 ) then
-        if ( rsp.json.follows = invalid OR rsp.json.follows.Count() = 0 ) then
-            ShowErrorDialog( "Found no followed channels for user: '" + userName + "'", "Error" )
+    userID = getUserID( userName )
+    if ( userID <> invalid ) then
+        urlToQuery = "https://api.twitch.tv/helix/users/follows?from_id=" + userID + "&first=100"
+        rsp = QueryForJson( urlToQuery, GetAddendum())
+        if ( rsp.status = 200 ) then
+            if ( rsp.json.data = invalid OR rsp.json.data.Count() = 0 ) then
+                ShowErrorDialog( "Found no followed channels for user: '" + userName + "'", "Error" )
+            else
+                channelsList = ""
+                for each entry in rsp.json.data
+                    channelsList = channelsList + "&user_id=" + entry.to_id
+                next
+                ViewTwitchStreams( "Followed Channels", "https://api.twitch.tv/helix/streams?first=50" + channelsList )
+            end if
         else
-            channelsList = ""
-            for each entry in rsp.json.follows
-                channelsList = channelsList + entry.channel.name + ","
-            next
-            ViewTwitchStreams( "Followed Channels", "https://api.twitch.tv/kraken/streams/?limit=50&channel=" + channelsList + GetAddendum() )
+            ShowErrorDialog( "Error querying Twitch (Code: " + tostr( rsp.status ) + ") Ensure you entered your username (" + userName + ") correctly!", "Twitch Error" )
+        end if
+    end if
+End Sub
+
+Function getUserID( userName as String )
+    urlToQuery = "https://api.twitch.tv/helix/users?login=" + userName.Trim()
+    rsp = QueryForJson( urlToQuery, GetAddendum() )
+    if ( rsp.status = 200 ) then
+        if ( rsp.json.data = invalid OR rsp.json.data.Count() = 0 ) then
+            ShowErrorDialog( "Failed to get user data for user: '" + userName + "'", "Error" )
+        else
+            return rsp.json.data[0].id
         end if
     else
         ShowErrorDialog( "Error querying Twitch (Code: " + tostr( rsp.status ) + ") Ensure you entered your username (" + userName + ") correctly!", "Twitch Error" )
     end if
-End Sub
+    return invalid
+End Function
 
 '******************************************************************************
 ' Main function to begin displaying Twitch content
 ' @param youtube the current youtube instance
-' @param url an optional URL with the multireddit to query, or the full link to parse. This is used when hitting the 'More Results' or 'Back' buttons on the video list page.
-'     multireddits look like this: videos+funny+humor for /r/videos, /r/funny, and /r/humor
 '******************************************************************************
-Sub ViewTwitchStreams(gameName as String, urlToQuery = invalid as dynamic, totalDisplayed = 0 as dynamic )
-    'https://api.twitch.tv/kraken/games/top?hls=true
+Sub ViewTwitchStreams(gameName as String, urlToQuery = invalid as dynamic, gameID = invalid as Dynamic )
     title = gameName
     screen = uitkPreShowPosterMenu( "flat-episodic-16x9", title )
-    screen.showMessage( "Loading Streams for " + gameName )
+    screen.showMessage( "Loading Streams for " + title )
     if ( urlToQuery = invalid ) then
-        urlToQuery = "https://api.twitch.tv/kraken/streams?limit=50&game=" + URLEncode(gameName)
+        urlToQuery = "https://api.twitch.tv/helix/streams?first=50&game_id=" + gameID
     end if
-    rsp = QueryForJson( urlToQuery + GetAddendum())
+    rsp = QueryForJson( urlToQuery, GetAddendum())
 
     if ( rsp.status = 200 ) then
         streamList = NewTwitchStreamList( rsp.json )
-        totalDisplayed = totalDisplayed + streamList.Count()
 
-        if ( totalDisplayed > 0 ) then
-            if ( streamList.Count() > 0 ) then
-                ' Now add the 'More results' button
-                if ( rsp.json._links <> invalid AND rsp.json._links.next <> invalid ) then
-                    if ( totalDisplayed < rsp.json._total ) then
-                        streamList.Push({shortDescriptionLine1: "More Results", action: "next", displayedSoFar: totalDisplayed, pageURL: URLDecode(rsp.json._links.next), HDPosterUrl:"pkg:/images/icon_next_episode.jpg", SDPosterUrl:"pkg:/images/icon_next_episode.jpg"})
-                    end if
-                end if
-
-                onselect = [1, streamList, gameName,
-                function(menu, gameName, set_idx)
-                    if (menu[set_idx]["action"] <> invalid) then
-                        plusRegex = CreateObject( "roRegex", "\+", "i" )
-                        ViewTwitchStreams(gameName, plusRegex.ReplaceAll( menu[set_idx]["pageURL"], "%20" ), menu[set_idx]["displayedSoFar"] )
-                    else
-                        newTwitchVideo( menu[set_idx]["ID"] )
-                    end if
-                    return set_idx
-                end function]
-                uitkDoPosterMenu( streamList, screen, onselect, onplay_callback_Twitch )
-            else
-                ShowErrorDialog( "No more live streams!", "Info" )
+        if ( streamList.Count() > 0 ) then
+            ' Now add the 'More results' button
+            if ( rsp.json.pagination <> invalid AND rsp.json.pagination.cursor <> invalid ) then
+                newURL = NewHttp( urlToQuery )
+                ' Remove the old value first, otherwise it doesn't get replaced
+                newURL.RemoveParam( "after", "urlParams" )
+                newURL.AddParam( "after", rsp.json.pagination.cursor, "urlParams" )
+                streamList.Push({shortDescriptionLine1: "More Results", action: "next", pageURL: newURL.GetURL(), HDPosterUrl:"pkg:/images/icon_next_episode.jpg", SDPosterUrl:"pkg:/images/icon_next_episode.jpg"})
             end if
+
+            onselect = [1, streamList, title,
+            function(menu, title, set_idx)
+                if (menu[set_idx]["action"] <> invalid) then
+                    ViewTwitchStreams( title, menu[set_idx]["pageURL"] )
+                else
+                    newTwitchVideo( menu[set_idx]["ChannelName"] )
+                end if
+                return set_idx
+            end function]
+            uitkDoPosterMenu( streamList, screen, onselect, onplay_callback_Twitch )
         else
-            ShowErrorDialog( "No followed streams are currently live!", "No Live Channels" )
+            ShowErrorDialog( "No more live streams!", "No Live Streams" )
         end if
     else
         ShowErrorDialog( "Error querying Twitch (Code: " + tostr( rsp.status ) + ")", "Twitch Error" )
@@ -128,7 +141,7 @@ End Function
 
 Function NewTwitchGameList(jsonObject As Object) As Object
     gameList = []
-    for each record in jsonObject.top
+    for each record in jsonObject.data
         gameList.Push( NewTwitchGameLink( record ) )
     next
     return gameList
@@ -136,7 +149,7 @@ End Function
 
 Function NewTwitchStreamList(jsonObject As Object) As Object
     streamList = []
-    for each record in jsonObject.streams
+    for each record in jsonObject.data
         streamList.Push( NewTwitchStreamLink( record ) )
     next
     return streamList
@@ -188,10 +201,9 @@ Function MatchAllURLs(regex as Object, text As String) As Object
 End Function
 
 Sub newTwitchVideo( channel as String )
-    result = QueryForJson( "https://api.twitch.tv/api/channels/" + channel + "/access_token?as3=t&allow_source=true" + GetAddendum() )
+    result = QueryForJson( "https://api.twitch.tv/api/channels/" + channel + "/access_token?need_https=true&as3=t&allow_source=true", GetAddendum() )
     'print "Sig: " ; result.json.sig
     'print "Token: " ; result.json.token
-    'QueryForJson( "http://usher.twitch.tv/select/" + channel + ".json?nauthsig=" + result.json.sig +"&nauth=" + result.json.token )'+ "&allow_source=true" )
     getYoutube().dashManifestContents = invalid
     getYoutube().twitchM3U8URL = invalid
     if ( result <> invalid AND result.status = 200 ) then
@@ -217,7 +229,7 @@ Sub newTwitchVideo( channel as String )
         ' Set the PlayStart sufficiently large so it starts at 'Live' position
         meta["PlayStart"]              = 500000
         meta["SwitchingStrategy"]      = "full-adaptation"
-        hlsUrl = "http://usher.twitch.tv/api/channel/hls/" + channel + ".m3u8?sig=" + result.json.sig +"&token=" + result.json.token + "&allow_spectre=false"
+        hlsUrl = "http://usher.twitch.tv/api/channel/hls/" + LCase(channel) + ".m3u8?sig=" + result.json.sig +"&token=" + result.json.token + "&allow_spectre=false"
         headers = { }
         headers["User-Agent"] = getConstants().USER_AGENT
         http = NewHttp( hlsUrl )
@@ -254,19 +266,19 @@ End Sub
 '******************************************************************************
 Function NewTwitchGameLink(jsonObject As Object) As Object
     game                   = {}
-    game["ID"]                      = tostr( jsonObject.game._id )
-    game["TitleSeason"]             = jsonObject.game.name
+    game["ID"]                      = tostr( jsonObject.id )
+    game["TitleSeason"]             = jsonObject.name
     game["Categories"]              = "Vidya Game"
     game["Source"]                  = getConstants().sTWITCH
-    game["Thumb"]                   = jsonObject.game.box.large
+    game["Thumb"]                   = jsonObject.box_art_url
     game["ContentType"]             = "game"
-    game["Title"]                   = "Viewers: " + tostr( jsonObject.viewers )
+    'game["Title"]                   = "Viewers: " + tostr( jsonObject.viewers )
     game["FullDescription"]         = ""
     game["Description"]             = tostr( jsonObject.channels ) + " Channels"
     game["ShortDescriptionLine1"]   = game["TitleSeason"]
     game["ShortDescriptionLine2"]   = game["Title"]
-    game["SDPosterUrl"]             = jsonObject.game.box.template.replace( "{width}", "158" ).replace( "{height}", "204" )
-    game["HDPosterUrl"]             = jsonObject.game.box.template.replace( "{width}", "214" ).replace( "{height}", "306" )
+    game["SDPosterUrl"]             = jsonObject.box_art_url.replace( "{width}", "158" ).replace( "{height}", "204" )
+    game["HDPosterUrl"]             = jsonObject.box_art_url.replace( "{width}", "214" ).replace( "{height}", "306" )
     return game
 End Function
 
@@ -277,23 +289,25 @@ End Function
 '******************************************************************************
 Function NewTwitchStreamLink(jsonObject As Object) As Object
     game                   = {}
-    game["ID"]                      = jsonObject.channel.name
-    if ( jsonObject.channel.language <> invalid ) then
-        game["TitleSeason"] = jsonObject.channel.display_name + " [Lang: " + UCase(jsonObject.channel.language) + "]"
+    game["ID"]                      = jsonObject.game_id
+    game["ChannelName"]             = jsonObject.user_name
+    if ( jsonObject.language <> invalid ) then
+        game["TitleSeason"] = jsonObject.user_name + " [Lang: " + UCase(jsonObject.language) + "]"
     else
-        game["TitleSeason"] = jsonObject.channel.display_name
+        game["TitleSeason"] = jsonObject.user_name
     end if
-    game["Categories"]              = jsonObject.game
+    'game["Categories"]              = jsonObject.game
     game["Source"]                  = getConstants().sTWITCH
-    game["Thumb"]                   = jsonObject.preview.large
+    game["Thumb"]                   = jsonObject.thumbnail_url
     game["ContentType"]             = "game"
-    game["Title"]                   = jsonObject.channel.game + " [Viewers: " + tostr( jsonObject.viewers ) + "]"
-    game["FullDescription"]         = jsonObject.channel.status
-    game["Description"]             = jsonObject.channel.status
+    'game["Title"]                   = jsonObject.channel.game + " [Viewers: " + tostr( jsonObject.viewer_count ) + "]"
+    game["Title"]                   = "[Viewers: " + tostr( jsonObject.viewer_count ) + "]"
+    game["FullDescription"]         = jsonObject.title
+    game["Description"]             = jsonObject.title
     game["ShortDescriptionLine1"]   = game["TitleSeason"]
     game["ShortDescriptionLine2"]   = game["Title"]
-    game["SDPosterUrl"]             = jsonObject.preview.template.replace( "{width}", "285" ).replace( "{height}", "145" )
-    game["HDPosterUrl"]             = jsonObject.preview.template.replace( "{width}", "385" ).replace( "{height}", "218" )
+    game["SDPosterUrl"]             = jsonObject.thumbnail_url.replace( "{width}", "285" ).replace( "{height}", "145" )
+    game["HDPosterUrl"]             = jsonObject.thumbnail_url.replace( "{width}", "385" ).replace( "{height}", "218" )
     return game
 End Function
 
@@ -321,15 +335,14 @@ End Sub
 ' @param theVideo the video metadata object that should be played.
 '********************************************************************
 Sub onplay_callback_Twitch(theVideo as Object)
-    newTwitchVideo( theVideo["ID"] )
+    newTwitchVideo( theVideo["ChannelName"] )
 End Sub
 
 Function GetAddendum( num = 61 as Integer ) as Dynamic
     retVal2 = ""
     retVal = []
     base = 99
-    retVal.Push( base - num )
-    retVal.Push( base )
+    retVal.Push( base - 32 )
     base = base + 9
     retVal.Push( base )
     base = base - 3
@@ -341,16 +354,17 @@ Function GetAddendum( num = 61 as Integer ) as Dynamic
     base = base + 6
     retVal.Push( base )
     base = base - 21
-    retVal.Push( base )
+    retVal.Push( base - 50 )
     base = base + 10
-    retVal.Push( base )
+    retVal.Push( base - 32 )
     base = base - 5
-    retVal.Push( base )
-    base = base - 39
-    retVal.Push( base )
+    retVal.Push( base - 32 )
+    'base = base - 42
+    'retVal.Push( base )
     for each item in retVal
         retVal2 = retVal2 + Chr( item )
     end for
-    return retval2 + GetAddendums()
+    finalRet = {}
+    finalRet[retVal2] = GetAddendums()
+    return finalRet
 End Function
-

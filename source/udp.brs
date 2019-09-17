@@ -74,6 +74,7 @@ End Sub
 '********************************************************************
 Sub CheckForMCast()
     youtube = getYoutube()
+    regexes = getRegexes()
     if (youtube.mp_socket = invalid OR youtube.udp_socket = invalid) then
         print("CheckForMCast: Invalid Message Port or UDP Socket")
         return
@@ -88,7 +89,7 @@ Sub CheckForMCast()
             data = youtube.udp_socket.receiveStr(4096) ' max 4096 characters
 
             ' Replace newlines
-            data = youtube.regexNewline.ReplaceAll( data, "" )
+            data = regexes.regexNewline.ReplaceAll( data, "" )
             ' print("Received " + Left(data, 2) + " from " + Mid(data, 3))
             if ((Left(data, 2) = "1?") AND (Mid(data, 3) <> youtube.device_id)) then
                 ' Nothing to do if there's no video to watch
@@ -114,7 +115,7 @@ Sub CheckForMCast()
         json = SimpleJSONBuilder(youtube.history[0])
         if (json <> invalid) then
             ' Replace all newlines in the JSON
-            json = youtube.regexNewline.ReplaceAll(json, "")
+            json = regexes.regexNewline.ReplaceAll(json, "")
             youtube.udp_socket.SendStr("1:" +  json)
         end if
     end if
@@ -133,6 +134,7 @@ Sub CheckForUnicast()
         print("CheckForUnicast: Invalid Message Port or TCP Socket")
         return
     end if
+    regexes = getRegexes()
     tcpListen = youtube.tcp_socket
     connections = youtube.connections
     messagePort = youtube.msgport_tcp
@@ -175,7 +177,7 @@ Sub CheckForUnicast()
                             'print "received is " ; data
                             if ( connection.isWritable() ) then
                                 if ( text = invalid AND youtube.twitchM3U8URL <> invalid ) then
-                                    matches = youtube.httpTargetRegex.Match( data )
+                                    matches = regexes.httpTargetRegex.Match( data )
                                     if ( matches.Count() > 1 ) then
                                         updateTwitchSubHLSText( youtube.twitchM3U8URL[ matches[1] ] )
                                         text = youtube.dashManifestContents
@@ -228,7 +230,7 @@ Sub handleYouTubePush( youtubeID as String )
         if (youtube.device_id = tokens[0]) then
             ids = []
             ids.push(tokens[1])
-
+            youtube.UpdateWaitDialog( "Playing Video..." )
             res = youtube.ExecBatchQueryV3( ids )
             videos = youtube.newVideoListFromJSON( res.items )
             if (videos.Count() > 0) then
@@ -238,6 +240,7 @@ Sub handleYouTubePush( youtubeID as String )
 
                     theVideo = metadata[0]
                     result = video_get_qualities(theVideo)
+                    getYoutube().CloseWaitDialog()
                     if (result = 0) then
                         DisplayVideo(theVideo)
                     end if
@@ -268,6 +271,7 @@ Sub handleRoosterteethPush( rtURL as String )
         meta = newForcedVideo( videoURL, "hls" )
         meta["Title"] = jsonObj.data[0].attributes.content_slug
         meta["Description"] = jsonObj.data[0].attributes.content_slug
+        getYoutube().CloseWaitDialog()
         DisplayVideo( meta )
     else
         ShowErrorDialog( "Error querying Roosterteeth (Code: " + tostr( rsp.status ) + ")", "RT Error" )
@@ -412,7 +416,7 @@ Sub CheckForLANVideos(youtube as Object)
             data = youtube.udp_socket.receiveStr(4096) ' max 4096 characters
             ' print("Received " + Left(data, 2) + " from " + Mid(data, 3))
             ' Replace newlines -- this WILL screw up JSON parsing
-            data = youtube.regexNewline.ReplaceAll( data, "" )
+            data = getRegexes().regexNewline.ReplaceAll( data, "" )
             if ((Left(data, 2) = "1:")) then
                 response = Mid(data, 3)
                 ' print("Received udp response: " + response)

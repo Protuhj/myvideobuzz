@@ -20,7 +20,7 @@ Function decodesig(sig as String) as Dynamic
         mainfunction["args"][param[0]] = sig
         'print("testing: " + sig)
         solved = solve(mainfunction)
-        'printAny( 5, "Solved: ", solved) 
+        'printAny( 5, "Solved: ", solved)
         return solved
     else
         print( "no mainfunction in decodesig!" )
@@ -28,17 +28,15 @@ Function decodesig(sig as String) as Dynamic
     end if
 End Function
 
-Function get_js_sm(video_id as String, waitDialog = invalid as Dynamic) as Dynamic
+Function get_js_sm(video_id as String) as Dynamic
     ' Fetch watchinfo page and extract stream map and js funcs if not known.
     'This function is needed by videos with encrypted signatures.
     'If the js url referred to in the watchv page is not a key in Pafy.funcmap,
     'the javascript is fetched and functions extracted.
     'Returns streammap (list of dicts), js url (str) and funcs (dict)
     '
-    jsplayer = CreateObject( "roRegex", Quote() + "assets" + Quote() + "\s*:\s*\{.*?" + Quote() + "js" + Quote() + "\s*:\s*" + Quote() + "(.*?)" + Quote(), "" )
-    sts_val = CreateObject( "roRegex", Quote() + "sts" + Quote() + "\s*:\s*(\d+)", "" )
-    sts_val_javascript = CreateObject( "roRegex", "sts\s*:\s*(\d+)", "" )
-    slashRegex = CreateObject( "roRegex", "\\\/", "" )
+    youtube = getYoutube()
+    regexes = getRegexes()
     watch_url = "https://www.youtube.com/watch?v=" + video_id
     http = NewHttp( watch_url )
     headers = { }
@@ -47,57 +45,45 @@ Function get_js_sm(video_id as String, waitDialog = invalid as Dynamic) as Dynam
     watchinfo = http.getToStringWithTimeout(10, headers)
     'print(watchinfo)
     ' Correct STS value is required for videos with encoded signatures
-    stsMatch = sts_val.Match( watchinfo )
+    stsMatch = regexes.sts_val.Match( watchinfo )
     stsValChanged = false
     if ( stsMatch.Count() > 1 ) then
         print "Found sts value: " + stsMatch[1]
-        if ( getYoutube().STSVal <> stsMatch[1] ) then
+        if ( youtube.STSVal <> stsMatch[1] ) then
             ' Don't write to the registry too often.
             ' Store the STS Value for use next time, in case it changes.
             RegWrite("YT_STS_VAL", stsMatch[1])
-            print "STS value mismatch old: " + getYoutube().STSVal + " new: " + stsMatch[1] + " - forcing retry"
-            getYoutube().STSVal = stsMatch[1]
+            print "STS value mismatch old: " + youtube.STSVal + " new: " + stsMatch[1] + " - forcing retry"
+            youtube.STSVal = stsMatch[1]
             stsValChanged = true
         end if
     else
         print "No STS match 1!"
     end if
-    m = jsplayer.Match( watchinfo )
+    m = regexes.jsplayer.Match( watchinfo )
     if ( m.Count() > 1 ) then
-        'print ("Found JS player: " + slashRegex.ReplaceAll(m[1], "/") )
+        'print ("Found JS player: " + regexes.slashRegex.ReplaceAll(m[1], "/") )
         'stream_info = myjson["args"]
         'dash_url = stream_info['dashmpd']
         'sm = _extract_smap(g.UEFSM, stream_info, False)
         'asm = _extract_smap(g.AF, stream_info, False)
-        js_url = slashRegex.ReplaceAll(m[1], "/")
-        
+        js_url = regexes.slashRegex.ReplaceAll(m[1], "/")
+
         if ( js_url.InStr( 0, "youtube.com" ) = -1 ) then
             js_url = "https://www.youtube.com" + js_url
         else if ( Left( js_url, 2 ) = "//") then
             js_url = "https:" + js_url
         end if
-        funcs = getYoutube().funcmap
-        if ( funcs = invalid OR (getYoutube().JSUrl <> js_url) ) then
-            if (waitDialog <> invalid) then
-                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
-                    waitDialog.UpdateText( "Downloading javascript file..." )
-                else
-                    waitDialog.SetText( "Downloading javascript file..." )
-                end if
-            end if
+        funcs = youtube.funcmap
+        if ( funcs = invalid OR (youtube.JSUrl <> js_url) ) then
+            youtube.UpdateWaitDialog( "Downloading javascript file..." )
             jsHttp = NewHttp( js_url )
             headers = { }
             headers["User-Agent"] = getConstants().USER_AGENT
             javascript = jsHttp.getToStringWithTimeout(10, headers)
-            if (waitDialog <> invalid) then
-                if ( getPrefs().getPrefValue( getConstants().pROKU_ONE_SUPPORT ) = getConstants().DISABLED_VALUE )
-                    waitDialog.UpdateText( "Parsing javascript..." )
-                else
-                    waitDialog.SetText( "Parsing javascript..." )
-                end if
-            end if
+            youtube.UpdateWaitDialog( "Parsing javascript..." )
 
-            stsMatch = sts_val_javascript.Match( javascript )
+            stsMatch = regexes.sts_val_javascript.Match( javascript )
             if ( stsMatch.Count() > 1 ) then
                 print "Found sts value 2: " + stsMatch[1]
                 if ( getYoutube().STSVal <> stsMatch[1] ) then
@@ -157,21 +143,14 @@ Function extractFunctionFromJS(funcName as String, jsBody as String) as Object
     return retVal
 End Function
 
+' Return main signature decryption function from javascript as dict. """
 Function getMainfuncFromJS(jsBody as String) as Dynamic
-    ' Return main signature decryption function from javascript as dict. """
-    'print( "Scanning js for main function." )
-    fpattern = CreateObject( "roRegex", "\bc\s*&&\s*d\.set\([^,]+\s*,\s*encodeURIComponent\(([a-zA-Z0-9$]+)\(", "" )
-    patterns = []
-    ' Push new patterns to the front of the list
-    patterns.push({ pattern: CreateObject( "roRegex", "(?P<sig>[a-zA-Z0-9$]+)\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*" + Quote() + Quote() + "\s*\)", "" ), position: 1})
-    patterns.push({ pattern: CreateObject( "roRegex", "\bc\s*&&\s*d\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(", "" ), position: 1})
-    patterns.push({ pattern: CreateObject( "roRegex", "\bc\s*&&\s*d\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(", "" ), position: 1})
-    patterns.push({ pattern: CreateObject( "roRegex", "yt\.akamaized\.net/\)\s*\|\|\s*.*?\s*c\s*&&\s*d\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(", "" ), position: 1})
-    patterns.push({ pattern: CreateObject( "roRegex", "([\" + Quote() + "\'])signature\1\s*,\s*([a-zA-Z0-9$]+)\(", "" ), position: 2})
-    patterns.push({ pattern: CreateObject( "roRegex", "\w\.sig\|\|([$\w]+)\(\w+\.\w+\)", "" ), position: 2})
-    patterns.push({ pattern: CreateObject( "roRegex", "\bc\s*&&\s*d\.set\([^,]+\s*,\s*encodeURIComponent\(([a-zA-Z0-9$]+)\(", "" ), position: 1 })
+    if ( getYoutube().DEBUG ) then
+        print( "Scanning js for main function." )
+    end if
+    regexes = getRegexes()
     count = 1
-    for each pat in patterns
+    for each pat in regexes.mainFuncPatterns
         matches = pat.pattern.Match( jsBody )
         if ( matches.Count() > 1 ) then
             funcname = matches[pat.position]
@@ -186,43 +165,48 @@ Function getMainfuncFromJS(jsBody as String) as Dynamic
     return invalid
 End Function
 
+'""" Return all secondary functions used in primary_func. """
 Function getOtherFuncs(primary_func as Object, jsText as String) as Object
-    '""" Return all secondary functions used in primary_func. """
-    'print("scanning javascript for secondary functions.")
+    youtube = getYoutube()
+    if ( youtube.DEBUG ) then
+        print("scanning javascript for secondary functions.")
+    end if
     body = primary_func.body
     body = body.Tokenize(";")
-    '# standard function call: X=F(A,B,C...)
-    funcCall = CreateObject( "roRegex", "(?:[$\w+])=([$\w]+)\(((?:\w+,?)+)\)$", "" )
-    '# dot notation function call: X=O.F(A,B,C..)
-    dotCall = CreateObject( "roRegex", "(?:[$\w+]=)?([$\w]+)\.([$\w]+)\(((?:\w+,?)+)\)$", "" )
-    '# dot notation function call: X=O["name"](A,B,C..)
-    arrayCall = CreateObject( "roRegex", "([$\w]+)\[(\" + Quote() + "[$\w]+\" + Quote() + ")\]\(((?:\w+,?)+)\)$", "" )
+    regexes = getRegexes()
     functions = {}
     for each part in body
         '# is this a function?
-        if ( funcCall.IsMatch( part ) ) then
-            match = funcCall.match(part)
+        if ( regexes.funcCall.IsMatch( part ) ) then
+            match = regexes.funcCall.match(part)
             name = match[1]
-            'print( "found secondary function '" + name + "'" )
+            if ( youtube.DEBUG ) then
+                print( "found secondary function '" + name + "'" )
+            end if
             if ( functions[name] = invalid ) then
                 ' # extract from javascript if not previously done
                 functions[name] = extractFunctionFromJS( name, jsText )
             '# else:
             '    # dbg("function '%s' is already in map.", name)
             end if
-        else if ( dotCall.IsMatch( part ) ) then
-            match = dotcall.match(part)
+        else if ( regexes.dotCall.IsMatch( part ) ) then
+            match = regexes.dotCall.match(part)
             name = match[1] + "." + match[2]
+            if ( youtube.DEBUG ) then
+                print "Found dot call: " + name
+            end if
             '# don't treat X=A.slice(B) as X=O.F(B)
             if ( match[2] = "slice" OR match[2] = "splice" ) then
                 ' Do nothing
             else if ( functions[name] = invalid ) then
                 functions[name] = extractDictFuncFromJS( name, jsText )
             end if
-        else if ( arrayCall.IsMatch( part ) ) then
-            match = arrayCall.match(part)
+        else if ( regexes.arrayCall.IsMatch( part ) ) then
+            match = regexes.arrayCall.match(part)
             name = match[1] + "." + match[2]
-            'print "Found array call: " + name
+            if ( youtube.DEBUG ) then
+                print "Found array call: " + name
+            end if
             '# don't treat X=A.slice(B) as X=O.F(B)
             if ( match[2] = "slice" OR match[2] = "splice" ) then
                 ' Do nothing
@@ -234,29 +218,31 @@ Function getOtherFuncs(primary_func as Object, jsText as String) as Object
     return functions
 End Function
 Function regexEscape( regexPart as String ) as String
-    dollarSignRegex = CreateObject( "roRegex", "\$", "" )
-
     ' Replace escaped quotes
-    return dollarSignRegex.ReplaceAll( regexPart, "\\$" )
+    return getRegexes().dollarSignRegex.ReplaceAll( regexPart, "\\$" )
 End Function
 
+'""" Find anonymous function from within a dict. """
 Function extractDictFuncFromJS(name as String, jsText as String) as Object
-    '""" Find anonymous function from within a dict. """
-    'print( "Extracting function '" + name + "' from javascript" )
+    youtube = getYoutube()
+    if ( youtube.DEBUG ) then
+        print( "Extracting function '" + name + "' from javascript" )
+    end if
     dotPos = Instr( 1, name, "." )
-    func = {} 
+    func = {}
     if ( dotPos > 0 ) then
         var = Left( name, dotPos - 1 )
         fname = Mid( name, dotPos + 1 )
         ' var and fname are not currently escaped properly, in the case of odd characters for regular expressions
         fpattern = CreateObject( "roRegex", "var\s+" + regexEscape( var ) + "\s*\=\s*\{.{0,2000}?" + regexEscape( fname ) + "\:function\(((?:\w+,?)+)\)\{([^}]+)\}", "s" )
-        'm = re.search(fpattern % (re.escape(var), re.escape(fname)), js)
         'args, body = m.groups()
         matches = fpattern.Match( jsText )
         if ( matches.Count() > 2 ) then
             args = matches[1]
             body = matches[2]
-            'print( "extracted dict function " + name + "(" + args + "){" + body + "};" )
+            if ( youtube.DEBUG ) then
+                print( "extracted dict function " + name + "(" + args + "){" + body + "};" )
+            end if
             'func = {'name': name, 'parameters': args.Tokenize(","), 'body': body}
             func.name = name
             func.parameters = args.Tokenize(",")
@@ -266,10 +252,9 @@ Function extractDictFuncFromJS(name as String, jsText as String) as Object
     return func
 End Function
 
+'""" resolve variable values, preserve int literals. Return dict."""
 Function getVal(val as String, argsdict as Object) as Dynamic
-    '""" resolve variable values, preserve int literals. Return dict."""
-    digitRegex = CreateObject( "roRegex", "(\d+)", "" )
-    digitMatches = digitRegex.match( val )
+    digitMatches = getRegexes().digitRegex.match( val )
     if ( digitMatches.Count() > 1 ) then
         ' Integer Case
         return digitMatches[1].ToInt()
