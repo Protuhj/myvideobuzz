@@ -107,9 +107,6 @@ Sub ShowHomeScreen(params = invalid as Dynamic)
         menudata.Push({ShortDescriptionLine1:"What to Watch", OnClick: "GetWhatsNew", ShortDescriptionLine2:"What's new to watch", HDPosterUrl:"pkg:/images/whattowatch.jpg", SDPosterUrl:"pkg:/images/whattowatch.jpg"})
         menudata.Push({ShortDescriptionLine1:"My Playlists", ContentFunc: "MyPlaylists", categoryData:{ isPlaylist: true, itemFunc: "GetPlaylistItems"}, ShortDescriptionLine2:"Browse your Playlists", HDPosterUrl:"pkg:/images/YourPlaylists.jpg", SDPosterUrl:"pkg:/images/YourPlaylists.jpg"})
         menudata.Push({ShortDescriptionLine1:"My Subscriptions", ContentFunc: "MySubscriptions", categoryData:{ isPlaylist: true, itemFunc: "GetVideosActivity"}, ShortDescriptionLine2:"Browse your Subscriptions", HDPosterUrl:"pkg:/images/YourSubscriptions.jpg", SDPosterUrl:"pkg:/images/YourSubscriptions.jpg"})
-        if ( prefs.getPrefValue( consts.pLIKED_ENABLED ) = consts.ENABLED_VALUE ) then
-            menudata.Push({ShortDescriptionLine1:"My Liked Videos", OnClick: "MyLiked", ShortDescriptionLine2:"Browse your Liked Videos", HDPosterUrl:"pkg:/images/Liked.png", SDPosterUrl:"pkg:/images/Liked.png"})
-        end if
     end if
     menudata.Push({ShortDescriptionLine1:"Search", OnClick:"SearchYoutube", ShortDescriptionLine2:"Search YouTube for videos",  HDPosterUrl:"pkg:/images/Search.jpg", SDPosterUrl:"pkg:/images/Search.jpg"})
     if ( prefs.getPrefValue( consts.pREDDIT_ENABLED ) = consts.ENABLED_VALUE ) then

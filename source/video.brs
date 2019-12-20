@@ -76,7 +76,6 @@ Function InitYouTube() As Object
 
     ' Playlists
     this.BrowseUserPlaylists = BrowseUserPlaylists_impl
-    this.MyLiked = MyLiked_impl
 
     'Videos
     this.DisplayVideoListFromVideoList = DisplayVideoListFromVideoList_impl
@@ -615,10 +614,6 @@ End Function
 Function MyPlaylists_impl( pageToken = invalid as Dynamic ) as Dynamic
     return m.GetPlaylists( m.channelId, pageToken )
 End Function
-
-Sub MyLiked_impl(  ) as Dynamic
-    m.FetchVideoList( "GetPlaylistItems", "Your Liked Videos", false, {isPlaylist: false, itemFunc: "GetPlaylistItems", contentArg: "LL" + Mid(m.channelId, 3)} )
-End Sub
 
 Function GetPlaylists_impl( forChannelId as String, pageToken = invalid as Dynamic ) as Dynamic
     parms = []
@@ -1523,7 +1518,7 @@ Function createDASHManifest( videoID, htmlString )
     manifestObj = {}
     ' Default to true in case something in this function fails
     manifestObj.didFail = true
-    durRegex = CreateObject("roRegex", "dur%253D([\d\.]+)", "ig")
+    durRegex = CreateObject("roRegex", "dur(?:%3D|%253D)([\d\.]+)", "ig")
     regexes = getRegexes()
     urlEncodedRegex = CreateObject("roRegex", "%22adaptiveFormats%22%3A%5B%7B(.*?)%7D%5D%2C", "ig")
     durMatch = durRegex.Match( htmlString )
