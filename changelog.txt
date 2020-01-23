@@ -1,6 +1,8 @@
+Version 2.3 Build 022
+    - Should fix Vevo playback
+    - Notice: Do not expect further updates, as the channel will be effectively abandoned.
 Version 2.3 Build 021
     - Should fix YouTube live stream playback.
-    - Notice: Do not expect further updates, as the channel will be effectively abandoned.
 Version 2.3 Build 020
     - Fixes a playback issue. (thanks /u/bombmars on reddit)
     - Also removes the Liked Videos button since YouTube has removed this feature.

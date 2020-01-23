@@ -451,6 +451,7 @@ Function LoadRegexes() as Object
     ''''' For locating the main function in Javascript
     this.mainFuncPatterns = []
     ' Push new patterns to the front of the list
+    this.mainFuncPatterns.push({ pattern: CreateObject( "roRegex", "\b(?P<sig>[a-zA-Z0-9$]{2})\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*" + Quote() + Quote() + "\s*\)", "" ), position: 1})
     this.mainFuncPatterns.push({ pattern: CreateObject( "roRegex", "(?P<sig>[a-zA-Z0-9$]+)\s*=\s*function\(\s*a\s*\)\s*{\s*a\s*=\s*a\.split\(\s*" + Quote() + Quote() + "\s*\)", "" ), position: 1})
     this.mainFuncPatterns.push({ pattern: CreateObject( "roRegex", "\bc\s*&&\s*d\.set\([^,]+\s*,\s*\([^)]*\)\s*\(\s*(?P<sig>[a-zA-Z0-9$]+)\(", "" ), position: 1})
     this.mainFuncPatterns.push({ pattern: CreateObject( "roRegex", "\bc\s*&&\s*d\.set\([^,]+\s*,\s*(?P<sig>[a-zA-Z0-9$]+)\(", "" ), position: 1})

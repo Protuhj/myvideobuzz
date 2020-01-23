@@ -1719,11 +1719,10 @@ Function tryLiveStream( htmlString as String, video as Object )
         video["MaxBandwidth"] = firstValid( getEnumValueForType( constants.eHLS_MAX_BANDWIDTH, prefs.getPrefValue( constants.pHLS_MAX_BANDWIDTH ) ), "0" ).ToInt()
         video["Streams"].Push({url: urlDecoded, bitrate: 0, quality: false, contentid: -1})
         video["SSL"] = isSSL
-        return video
     else
         print "Failed to extract Live Stream URL"
-        return invalid
     end if
+    return video
 End Function
 
 Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as Boolean, retryCount as Integer )
@@ -1877,22 +1876,17 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                 end if
             end if
         else
-            result = tryLiveStream( htmlString, video )
-            if ( result <> invalid ) then
-                video = result
-            end if
+            video = tryLiveStream( htmlString, video )
         end if
     else
         if ( retryCount < 1 ) then
-            result = tryLiveStream( htmlString, video )
-            if ( result = invalid ) then
+            video = tryLiveStream( htmlString, video )
+            if ( video["Streams"].Count() = 0) then
                 print ( "Nothing in urlEncodedFmtStreamMap, retrying with different URL." )
                 if (pleaseWaitDlg <> invalid) then
                     pleaseWaitDlg.Close()
                 end if
                 return getYouTubeMP4Url(video, false, 1)
-            else
-                video = result
             end if
         else
             print ( "Retries exceeded, giving up!" )
