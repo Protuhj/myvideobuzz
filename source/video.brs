@@ -1692,6 +1692,40 @@ Function getYouTubeDASHMPD( htmlString as String, video as Object, isSSL as Bool
     end if
 End Function
 
+Function tryLiveStream( htmlString as String, video as Object )
+    constants = getConstants()
+    prefs = getPrefs()
+    'hlsUrl = CreateObject("roRegex", "hlsvp=([^(" + Chr(34) + "|&|$)]*)", "").Match(htmlString)
+    ' htmlString is encoded still at this point
+    ' new raw (Jan 2019): "hlsManifestUrl.+?(https?%3A.+?)%22
+    hlsUrl = CreateObject("roRegex", "hlsManifestUrl.+?(https?%3A.+?)%22", "i").Match(htmlString)
+    if (hlsUrl.Count() > 1) then
+        urlDecoded = URLDecode(URLDecode(URLDecode(hlsUrl[1])))
+        ' print "raw: " ; hlsUrl[1]
+        'print "urlDecoded: " ; urlDecoded
+        if ( Left( LCase( urlDecoded ), 5) = "https" ) then
+            isSSL = true
+        else if ( isSSL <> true )
+            isSSL = false
+        end if
+        video["Streams"].Clear()
+        video["Live"]              = true
+        ' Set the PlayStart sufficiently large so it starts at 'Live' position
+        video["PlayStart"]        = 500000
+        video["StreamFormat"]      = "hls"
+        'video["SwitchingStrategy"] = "unaligned-segments"
+        video["SwitchingStrategy"] = "full-adaptation"
+        'print ("HLS URL: " + urlDecoded)
+        video["MaxBandwidth"] = firstValid( getEnumValueForType( constants.eHLS_MAX_BANDWIDTH, prefs.getPrefValue( constants.pHLS_MAX_BANDWIDTH ) ), "0" ).ToInt()
+        video["Streams"].Push({url: urlDecoded, bitrate: 0, quality: false, contentid: -1})
+        video["SSL"] = isSSL
+        return video
+    else
+        print "Failed to extract Live Stream URL"
+        return invalid
+    end if
+End Function
+
 Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as Boolean, retryCount as Integer )
     youtube = getYoutube()
     urlEncodedRegex = CreateObject("roRegex", "url_encoded_fmt_stream_map=([^(" + Chr(34) + "|&|$)]*)", "ig")
@@ -1843,42 +1877,23 @@ Function getYouTubeOrGDriveURLs( htmlString as String, video as Object, isSSL as
                 end if
             end if
         else
-            'hlsUrl = CreateObject("roRegex", "hlsvp=([^(" + Chr(34) + "|&|$)]*)", "").Match(htmlString)
-            ' htmlString is encoded still at this point
-            ' new raw (Jan 2019): "hlsManifestUrl.+?(https?%3A.+?)%22
-            hlsUrl = CreateObject("roRegex", "hlsManifestUrl.+?(https?%3A.+?)%22", "i").Match(htmlString)
-            if (hlsUrl.Count() > 1) then
-                urlDecoded = URLDecode(URLDecode(URLDecode(hlsUrl[1])))
-                'print "raw: " ; hlsUrl[1]
-                'print "urlDecoded: " ; urlDecoded
-                if ( Left( LCase( urlDecoded ), 5) = "https" ) then
-                    isSSL = true
-                else if ( isSSL <> true )
-                    isSSL = false
-                end if
-                video["Streams"].Clear()
-                video["Live"]              = true
-                ' Set the PlayStart sufficiently large so it starts at 'Live' position
-                video["PlayStart"]        = 500000
-                video["StreamFormat"]      = "hls"
-                'video["SwitchingStrategy"] = "unaligned-segments"
-                video["SwitchingStrategy"] = "full-adaptation"
-                'print ("HLS URL: " + urlDecoded)
-                video["MaxBandwidth"] = firstValid( getEnumValueForType( constants.eHLS_MAX_BANDWIDTH, prefs.getPrefValue( constants.pHLS_MAX_BANDWIDTH ) ), "0" ).ToInt()
-                video["Streams"].Push({url: urlDecoded, bitrate: 0, quality: false, contentid: -1})
-                video["SSL"] = isSSL
-            else
-                print "Failed to extract Live Stream URL"
+            result = tryLiveStream( htmlString, video )
+            if ( result <> invalid ) then
+                video = result
             end if
-
         end if
     else
         if ( retryCount < 1 ) then
-            print ( "Nothing in urlEncodedFmtStreamMap, retrying with different URL." )
-            if (pleaseWaitDlg <> invalid) then
-                pleaseWaitDlg.Close()
+            result = tryLiveStream( htmlString, video )
+            if ( result = invalid ) then
+                print ( "Nothing in urlEncodedFmtStreamMap, retrying with different URL." )
+                if (pleaseWaitDlg <> invalid) then
+                    pleaseWaitDlg.Close()
+                end if
+                return getYouTubeMP4Url(video, false, 1)
+            else
+                video = result
             end if
-            return getYouTubeMP4Url(video, false, 1)
         else
             print ( "Retries exceeded, giving up!" )
         end if

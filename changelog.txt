@@ -1,14 +1,14 @@
+Version 2.3 Build 021
+    - Should fix YouTube live stream playback.
+    - Notice: Do not expect further updates, as the channel will be effectively abandoned.
 Version 2.3 Build 020
     - Fixes a playback issue. (thanks /u/bombmars on reddit)
     - Also removes the Liked Videos button since YouTube has removed this feature.
 Version 2.3 Build 019
     - Fixes another crash condition
-    - Notice: Do not expect further updates, as the channel will be effectively abandoned due to Roku blocking developer mode access.
 Version 2.3 Build 018
     - Hopefully fixes crashes with videos returning invalid data
     - Added a dialog to show that the app is doing something, since the process to play a video can take a few seconds
     - Fixes Twitch.tv playback
 Version 2.3 Build 017
     - Fixes DASH playback again
-Version 2.3 Build 016
-    - Fixes Vevo playback again
