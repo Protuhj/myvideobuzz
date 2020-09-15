@@ -1,4 +1,7 @@
-MyVideoBuzz -- Protuhj's Fork
+### After years of development, I have stopped supporting the Roku platform. I will be setting this repository to archived, as I do not plan on reviving it.
+### Feel free to fork!
+
+MyVideoBuzz -- Protuhj's Fork (Archived)
 =============
 
 This project is a fork of [Roku YouTube](https://github.com/jesstech/Roku-YouTube) by [jesstech](https://github.com/jesstech). Updates include API fixes, additional features, and the removal of OAuth settings.
